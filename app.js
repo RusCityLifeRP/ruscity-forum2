@@ -1,4 +1,4 @@
-// НАСТРОЙКА FIREBASE (Данные RusCity Life RP)
+// НАСТРОЙКА FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -10,7 +10,6 @@ const firebaseConfig = {
     measurementId: "G-QKSHRLLLJS"
 };
 
-// Инициализация
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
@@ -20,6 +19,10 @@ let viewedUserId = null;
 let currentSectionId = null;
 let currentTopicId = null;
 
+// Локальные переменные для хранения картинок Base64 во время редактирования
+let base64Avatar = null;
+let base64Banner = null;
+
 const sectionNames = {
     'news': '📢 Новости и объявления',
     'rules': '📜 Правила сервера',
@@ -27,6 +30,20 @@ const sectionNames = {
     'crime': '🥷 Криминальные организации',
     'report-players': '🚫 Жалобы на игроков',
     'report-admins': '🛠️ Жалобы на администрацию'
+};
+
+// Хранилище CSS-классов для разных тегов
+const tagClasses = {
+    'User': 'tag-user',
+    'Руководство проекта': 'tag-rukovodstvo',
+    'Специальный администратор': 'tag-specadmin',
+    'Главный администратор': 'tag-glavadmin',
+    'Заместитель главного администратора': 'tag-zamglavadmin',
+    'Главный куратор': 'tag-glavkurator',
+    'Заместитель главного куратора': 'tag-zamglavkurator',
+    'Главный администратор форума': 'tag-glavforum',
+    'Зам. Главного адм форума': 'tag-zamglavforum',
+    'Адм. Форума': 'tag-admforum'
 };
 
 function showScreen(screenId) {
@@ -81,7 +98,7 @@ function logout() {
     location.reload();
 }
 
-// СОСТОЯНИЕ АВТОРИЗАЦИИ
+// ОБНОВЛЕНИЕ АВТОРИЗАЦИИ
 auth.onAuthStateChanged(user => {
     if (user) {
         db.ref('users/' + user.uid).on('value', snapshot => {
@@ -112,11 +129,17 @@ function viewMyProfile() {
     openProfile(currentUserData.uid);
 }
 
-// ОТКРЫТИЕ ПРОФИЛЯ
+// ОТКРЫТИЕ ПРОФИЛЯ С ТЕГАМИ И АНИМАЦИЕЙ
 function openProfile(uid) {
     viewedUserId = uid;
     showScreen('screen-profile');
     
+    // Сброс буферов файлов
+    base64Avatar = null;
+    base64Banner = null;
+    document.getElementById('file-avatar').value = "";
+    document.getElementById('file-banner').value = "";
+
     db.ref('users/' + uid).once('value').then(snapshot => {
         const user = snapshot.val();
         if(!user) return;
@@ -128,24 +151,31 @@ function openProfile(uid) {
         const elBanner = document.getElementById('prof-banner');
 
         elName.innerText = user.username;
-        elRole.innerText = user.role;
+        elRole.innerText = user.role || "Пользователь";
         elDesc.innerText = user.description;
         elAvatar.src = user.avatar;
         elBanner.style.backgroundImage = "url('" + user.banner + "')";
 
-        if(user.role === 'Admin') { 
-            elRole.style.backgroundColor = 'var(--admin-color)'; 
-        } else { 
-            elRole.style.backgroundColor = 'var(--user-color)'; 
-        }
+        // Сброс старых классов тега и установка нового
+        elRole.className = "role-badge";
+        const currentTagClass = tagClasses[user.role] || 'tag-user';
+        elRole.classList.add(currentTagClass);
 
         const editBlock = document.getElementById('profile-edit-block');
+        const tagSelectorBlock = document.getElementById('admin-tag-selector-block');
+
         if(currentUserData && currentUserData.uid === uid) {
             editBlock.classList.remove('hidden');
             document.getElementById('edit-name').value = user.username;
-            document.getElementById('edit-avatar').value = user.avatar;
-            document.getElementById('edit-banner').value = user.banner;
             document.getElementById('edit-desc').value = user.description;
+            
+            // Если ты админ, ты можешь прямо в профиле менять свой тег должности
+            if(currentUserData.role === 'Admin' || tagClasses[currentUserData.role] !== 'tag-user') {
+                tagSelectorBlock.classList.remove('hidden');
+                document.getElementById('edit-role-tag').value = user.role || "User";
+            } else {
+                tagSelectorBlock.classList.add('hidden');
+            }
         } else {
             editBlock.classList.add('hidden');
         }
@@ -159,22 +189,49 @@ function openProfile(uid) {
     });
 }
 
-// СОХРАНЕНИЕ ПРОФИЛЯ
+// СЛУШАТЕЛИ ФАЙЛОВ ИЗ ПРОВОДНИКА (Base64 Конвертеры)
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById('file-avatar').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onloadend = () => { base64Avatar = reader.result; };
+        reader.readAsDataURL(file);
+    });
+
+    document.getElementById('file-banner').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onloadend = () => { base64Banner = reader.result; };
+        reader.readAsDataURL(file);
+    });
+});
+
+// СОХРАНЕНИЕ ИЗМЕНЕНИЙ
 function saveProfile() {
     if(!currentUserData || currentUserData.uid !== viewedUserId) return;
     if(currentUserData.isMuted) return alert("Вы замучены!");
 
     const newName = document.getElementById('edit-name').value.trim();
-    const newAvatar = document.getElementById('edit-avatar').value.trim();
-    const newBanner = document.getElementById('edit-banner').value.trim();
     const newDesc = document.getElementById('edit-desc').value.trim();
-
-    db.ref('users/' + currentUserData.uid).update({
+    
+    let updateFields = {
         username: newName,
-        avatar: newAvatar,
-        banner: newBanner,
         description: newDesc
-    }).then(() => {
+    };
+
+    // Если файлы были выбраны, добавляем их в пакет обновления
+    if (base64Avatar) updateFields.avatar = base64Avatar;
+    if (base64Banner) updateFields.banner = base64Banner;
+
+    // Обновление админ-тега роли, если блок выбора был активен
+    const tagSelectorBlock = document.getElementById('admin-tag-selector-block');
+    if (!tagSelectorBlock.classList.contains('hidden')) {
+        updateFields.role = document.getElementById('edit-role-tag').value;
+    }
+
+    db.ref('users/' + currentUserData.uid).update(updateFields).then(() => {
         alert("Профиль успешно обновлен!");
         openProfile(currentUserData.uid);
     });
