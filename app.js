@@ -1,12 +1,12 @@
 // НАСТРОЙКА FIREBASE (Замени своими данными из консоли Firebase)
 const firebaseConfig = {
-    apiKey: "ТВОЙ_API_KEY",
-    authDomain: "ТВОЙ_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://ТВОЙ_PROJECT_ID-default-rtdb.firebaseio.com",
-    projectId: "ТВОЙ_PROJECT_ID",
-    storageBucket: "ТВОЙ_PROJECT_ID.appspot.com",
-    messagingSenderId: "...",
-    appId: "..."
+ apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
+ authDomain: "ruscity-349e7.firebaseapp.com",
+ projectId: "ruscity-349e7",
+ storageBucket: "ruscity-349e7.firebasestorage.app",
+ messagingSenderId: "728638066749",
+ AppID: "1:728638066749:web:78b207bc6765e3dc685a54",
+ measurementId: "G-QKSHRLLLJS"
 };
 
 // Инициализация
