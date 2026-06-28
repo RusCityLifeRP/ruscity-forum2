@@ -12,7 +12,7 @@
 </head>
 <body>
 
-    <!-- СТИЛЬНАЯ И УДОБНАЯ ШАПКА ФОРУМА -->
+    <!-- ШАПКА ФОРУМА -->
     <header class="forum-header">
         <div class="header-container">
             <div class="header-logo" onclick="showScreen('screen-forum')">
@@ -50,7 +50,7 @@
     <main class="main-container">
 
         <!-- ЭКРАН: ГЛАВНАЯ (СПИСОК РАЗДЕЛОВ) -->
-        <div id="screen-forum" class="screen">
+        <div id="screen-forum" class="screen animate-fade">
             <h2 class="page-title">Разделы форума</h2>
             <div class="sections-list">
                 <div class="forum-section" onclick="openSection('news')"><h3>📢 Новости и объявления</h3><p>Важные изменения проекта</p></div>
@@ -63,16 +63,16 @@
         </div>
 
         <!-- ЭКРАН: ВХОД -->
-        <div id="screen-login" class="screen hidden auth-card">
+        <div id="screen-login" class="screen hidden auth-card animate-fade">
             <h2>Вход на форум</h2>
-            <input type="email" id="login-email" placeholder="Электронная почта">
+            <input type="email" id="login-email" placeholder="Electronic Mail">
             <input type="password" id="login-password" placeholder="Пароль">
             <button class="btn-primary" onclick="loginUser()">Войти</button>
             <p onclick="showScreen('screen-register')" class="auth-toggle">Нет аккаунта? Зарегистрироваться</p>
         </div>
 
         <!-- ЭКРАН: РЕГИСТРАЦИЯ -->
-        <div id="screen-register" class="screen hidden auth-card">
+        <div id="screen-register" class="screen hidden auth-card animate-fade">
             <h2>Регистрация аккаунта</h2>
             <input type="text" id="reg-username" placeholder="Игровой Никнейм (Ivan_Ivanov)">
             <input type="email" id="reg-email" placeholder="Электронная почта">
@@ -83,7 +83,7 @@
         </div>
 
         <!-- ЭКРАН: ПРОСМОТР РАЗДЕЛА (ТЕМЫ) -->
-        <div id="screen-section" class="screen hidden">
+        <div id="screen-section" class="screen hidden animate-fade">
             <button class="btn-back" onclick="showScreen('screen-forum')">⬅ Назад к разделам</button>
             <div class="section-header-block">
                 <h2 id="section-title">Раздел</h2>
@@ -101,7 +101,7 @@
         </div>
 
         <!-- ЭКРАН: ПРОСМОТР ТЕМЫ И ОТВЕТЫ -->
-        <div id="screen-topic-view" class="screen hidden">
+        <div id="screen-topic-view" class="screen hidden animate-fade">
             <button class="btn-back" onclick="backToSection()">⬅ Назад к списку тем</button>
             <div class="topic-main-post">
                 <h2 id="view-topic-title">Заголовок темы</h2>
@@ -120,7 +120,7 @@
         </div>
 
         <!-- ЭКРАН: ПРОФИЛЬ -->
-        <div id="screen-profile" class="screen hidden">
+        <div id="screen-profile" class="screen hidden animate-fade">
             <div id="prof-banner" class="profile-banner">
                 <div class="profile-avatar-container">
                     <img id="prof-avatar" src="" alt="Аватар профиля">
@@ -148,14 +148,34 @@
                     <label>Игровой никнейм:</label>
                     <input type="text" id="edit-name">
                 </div>
+                
+                <!-- Загрузка фото из проводника -->
                 <div class="form-group">
-                    <label>Ссылка на аватарку (URL картинки):</label>
-                    <input type="text" id="edit-avatar" placeholder="https://i.imgur.com/... или ссылка на фото">
+                    <label>Загрузить новую аватарку:</label>
+                    <input type="file" id="file-avatar" accept="image/*" class="file-input-styled">
                 </div>
                 <div class="form-group">
-                    <label>Ссылка на баннер профиля (URL картинки):</label>
-                    <input type="text" id="edit-banner" placeholder="https://i.imgur.com/... или ссылка на фон">
+                    <label>Загрузить новый баннер профиля:</label>
+                    <input type="file" id="file-banner" accept="image/*" class="file-input-styled">
                 </div>
+
+                <!-- Выбор тегов (Виден только админам для управления, либо самому себе если админ) -->
+                <div class="form-group id-admin-only-tag hidden" id="admin-tag-selector-block">
+                    <label>Установить тег должности (Доступно Администрации):</label>
+                    <select id="edit-role-tag" class="select-styled">
+                        <option value="User">Пользователь</option>
+                        <option value="Руководство проекта">Руководство проекта</option>
+                        <option value="Специальный администратор">Специальный администратор</option>
+                        <option value="Главный администратор">Главный администратор</option>
+                        <option value="Заместитель главного администратора">Заместитель главного администратора</option>
+                        <option value="Главный куратор">Главный куратор</option>
+                        <option value="Заместитель главного куратора">Заместитель главного куратора</option>
+                        <option value="Главный администратор форума">Главный администратор форума</option>
+                        <option value="Зам. Главного адм форума">Зам. Главного адм форума</option>
+                        <option value="Адм. Форума">Адм. Форума</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label>О себе:</label>
                     <textarea id="edit-desc" rows="3"></textarea>
