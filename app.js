@@ -115,7 +115,6 @@ function openProfile(uid) {
 
         // Наполнение данными
         document.getElementById('prof-name').innerText = user.username;
-01:30
 document.getElementById('prof-role').innerText = user.role;
         document.getElementById('prof-desc').innerText = user.description;
         document.getElementById('prof-avatar').src = user.avatar;
