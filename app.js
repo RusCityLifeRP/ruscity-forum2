@@ -2,7 +2,7 @@
 const firebaseConfig = {
  apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
  authDomain: "ruscity-349e7.firebaseapp.com",
- databaseURL: "https://ruscity-349e7-default-rtdb.europe-west1.firebasedatabase.app/"
+ databaseURL: "https://ruscity-349e7-default-rtdb.europe-west1.firebasedatabase.app/",
  projectId: "ruscity-349e7",
  storageBucket: "ruscity-349e7.firebasestorage.app",
  messagingSenderId: "728638066749",
