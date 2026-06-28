@@ -20,7 +20,6 @@ let viewedUserId = null;
 let currentSectionId = null;
 let currentTopicId = null;
 
-// Названия разделов для списков
 const sectionNames = {
     'news': '📢 Новости и объявления',
     'rules': '📜 Правила сервера',
@@ -30,7 +29,6 @@ const sectionNames = {
     'report-admins': '🛠️ Жалобы на администрацию'
 };
 
-// Переключение экранов
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById(screenId).classList.remove('hidden');
@@ -78,13 +76,12 @@ function loginUser() {
         .catch(error => alert("Ошибка: " + error.message));
 }
 
-// ВЫХОД
 function logout() {
     auth.signOut();
     location.reload();
 }
 
-// Отслеживание состояния авторизации
+// СОСТОЯНИЕ АВТОРИЗАЦИИ
 auth.onAuthStateChanged(user => {
     if (user) {
         db.ref('users/' + user.uid).on('value', snapshot => {
@@ -98,9 +95,11 @@ auth.onAuthStateChanged(user => {
             }
             currentUserData = data;
             currentUserData.uid = user.uid;
+            
             document.getElementById('auth-buttons').classList.add('hidden');
             document.getElementById('user-menu').classList.remove('hidden');
             document.getElementById('header-username').innerText = data.username;
+            document.getElementById('header-avatar').src = data.avatar || "https://placehold.co/150";
         });
     } else {
         document.getElementById('auth-buttons').classList.remove('hidden');
@@ -108,12 +107,12 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ПРОСМОТР ПРОФИЛЯ
 function viewMyProfile() {
     if(!currentUserData) return;
     openProfile(currentUserData.uid);
 }
 
+// ОТКРЫТИЕ ПРОФИЛЯ
 function openProfile(uid) {
     viewedUserId = uid;
     showScreen('screen-profile');
@@ -122,7 +121,6 @@ function openProfile(uid) {
         const user = snapshot.val();
         if(!user) return;
 
-        // Элементы вынесены отдельно, чтобы избежать склеивания строк
         const elName = document.getElementById('prof-name');
         const elRole = document.getElementById('prof-role');
         const elDesc = document.getElementById('prof-desc');
@@ -135,14 +133,12 @@ function openProfile(uid) {
         elAvatar.src = user.avatar;
         elBanner.style.backgroundImage = "url('" + user.banner + "')";
 
-        // Цвет роли
         if(user.role === 'Admin') { 
             elRole.style.backgroundColor = 'var(--admin-color)'; 
         } else { 
             elRole.style.backgroundColor = 'var(--user-color)'; 
         }
 
-        // Показ блока редактирования
         const editBlock = document.getElementById('profile-edit-block');
         if(currentUserData && currentUserData.uid === uid) {
             editBlock.classList.remove('hidden');
@@ -154,7 +150,6 @@ function openProfile(uid) {
             editBlock.classList.add('hidden');
         }
 
-        // Показ админ-панели
         const adminBlock = document.getElementById('admin-actions-block');
         if(currentUserData && currentUserData.role === 'Admin' && currentUserData.uid !== uid) {
             adminBlock.classList.remove('hidden');
@@ -164,7 +159,7 @@ function openProfile(uid) {
     });
 }
 
-// СОХРАНЕНИЕ ИЗМЕНЕНИЙ ПРОФИЛЯ
+// СОХРАНЕНИЕ ПРОФИЛЯ
 function saveProfile() {
     if(!currentUserData || currentUserData.uid !== viewedUserId) return;
     if(currentUserData.isMuted) return alert("Вы замучены!");
@@ -185,7 +180,7 @@ function saveProfile() {
     });
 }
 
-// АДМИНИСТРАТИВНЫЕ ФУНКЦИИ
+// МОДЕРАЦИЯ
 function moderateUser(action) {
     if(!currentUserData || currentUserData.role !== 'Admin') return alert("Нет прав!");
     let updateData = {};
@@ -303,7 +298,6 @@ function openTopic(topicId) {
     });
 }
 
-// ОТВЕТ В ТЕМУ
 function createNewComment() {
     if (!currentUserData) return alert("Авторизуйтесь!");
     if (currentUserData.isMuted) return alert("Вы замучены!");
