@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RusCity Life RP — Форум проекта</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Шапка форума -->
+    <header class="main-header">
+        <div class="logo">RusCity Life <span>RP</span></div>
+        <nav class="nav-menu">
+            <button id="btn-home" onclick="showScreen('screen-forum')">Главная</button>
+            <div id="auth-buttons">
+                <button onclick="showScreen('screen-login')">Вход</button>
+                <button onclick="showScreen('screen-register')" class="btn-accent">Регистрация</button>
+            </div>
+            <div id="user-menu" class="hidden">
+                <span id="header-username" onclick="viewMyProfile()">Никнейм</span>
+                <button onclick="logout()">Выйти</button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <!-- ЭКРАН: ВХОД -->
+        <section id="screen-login" class="screen hidden">
+            <div class="auth-form">
+                <h2>Авторизация</h2>
+                <input type="email" id="login-email" placeholder="Email (Почта)" required>
+                <input type="password" id="login-password" placeholder="Пароль" required>
+                <button onclick="loginUser()">Войти</button>
+            </div>
+        </section>
+
+        <!-- ЭКРАН: РЕГИСТРАЦИЯ -->
+        <section id="screen-register" class="screen hidden">
+            <div class="auth-form">
+                <h2>Регистрация</h2>
+                <input type="text" id="reg-username" placeholder="Игровой Ник (Имя_Фамилия)" required>
+                <input type="email" id="reg-email" placeholder="Электронная почта" required>
+                <input type="password" id="reg-password" placeholder="Пароль" required>
+                <input type="password" id="reg-password-confirm" placeholder="Повторите пароль" required>
+                <button onclick="registerUser()">Создать аккаунт</button>
+            </div>
+        </section>
+
+        <!-- ЭКРАН: ГЛАВНЫЙ ФОРУМ (РАЗДЕЛЫ) -->
+        <section id="screen-forum" class="screen">
+            <div class="forum-category">
+                <div class="category-title">Важная информация</div>
+                <div class="forum-section" onclick="openSection('news')">
+                    <h3>📢  Новости и объявления</h3>
+                    <p>Основные новости проекта RusCity Life RP</p>
+                </div>
+                <div class="forum-section" onclick="openSection('rules')">
+                    <h3>📜  Правила сервера</h3>
+                    <p>Правила игрового процесса, форума и Discord</p>
+                </div>
+            </div>
+
+            <div class="forum-category">
+                <div class="category-title">Игровой процесс</div>
+                <div class="forum-section" onclick="openSection('gos')">
+                    <h3>🏢  Государственные организации</h3>
+                    <p>Правительство, LSPD, FIB, EMS, Army</p>
+                </div>
+                <div class="forum-section" onclick="openSection('crime')">
+                    <h3>🥷  Криминальные организации</h3>
+                    <p>Банды, мафии, синдикаты</p>
+                </div>
+            </div>
+
+            <div class="forum-category">
+                <div class="category-title">Жалобы и апелляции</div>
+                <div class="forum-section" onclick="openSection('report-players')">
+                    <h3>🚫  Жалобы на игроков</h3>
+                    <p>Нарушения правил сервера со стороны игроков</p>
+                </div>
+                <div class="forum-section" onclick="openSection('report-admins')">
+                    <h3>🛠️  Жалобы на администрацию</h3>
+                    <p>Обжалование наказаний и действия администрации</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ЭКРАН: ПРОФИЛЬ -->
+01:27
+<section id="screen-profile" class="screen hidden">
+            <div class="profile-card">
+                <div class="profile-banner" id="prof-banner" style="background-image: url('https://placehold.co/1000x300/222/fff?text=RusCity+Life+RP');"></div>
+                <div class="profile-info">
+                    <img id="prof-avatar" src="https://placehold.co/150/444/fff?text=User" alt="Аватар" class="avatar">
+                    <div class="profile-meta">
+                        <h2 id="prof-name">Никнейм</h2>
+                        <span id="prof-role" class="badge">Пользователь</span>
+                        <p id="prof-desc">Описание профиля отсутствует.</p>
+                    </div>
+                </div>
+                
+                <!-- Кнопки управления (видны только владельцу или админу) -->
+                <div id="profile-edit-block" class="profile-actions hidden">
+                    <h3>Редактировать профиль</h3>
+                    <input type="text" id="edit-name" placeholder="Новый Никнейм">
+                    <input type="text" id="edit-avatar" placeholder="Ссылка на URL аватара">
+                    <input type="text" id="edit-banner" placeholder="Ссылка на URL баннера">
+                    <textarea id="edit-desc" placeholder="О себе..."></textarea>
+                    <button onclick="saveProfile()" class="btn-accent">Сохранить изменения</button>
+                </div>
+
+                <!-- Админ-панель модерации над пользователем -->
+                <div id="admin-actions-block" class="profile-actions admin-zone hidden">
+                    <h3>Панель модерации (Администрация)</h3>
+                    <div class="btn-group">
+                        <button onclick="moderateUser('mute')" class="btn-warn">Выдать мут</button>
+                        <button onclick="moderateUser('unmute')">Снять мут</button>
+                        <button onclick="moderateUser('ban')" class="btn-danger">Забанить</button>
+                        <button onclick="moderateUser('unban')">Разбанить</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Подключаем Firebase (Используем CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    
+    <!-- Наш скрипт логики -->
+    <script src="app.js"></script>
+</body>
+</html>
