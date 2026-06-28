@@ -1,4 +1,4 @@
-// НАСТРОЙКА FIREBASE (Данные RusCity Life RP проверены и исправлены)
+// НАСТРОЙКА FIREBASE (Данные RusCity Life RP)
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -30,7 +30,7 @@ const sectionNames = {
     'report-admins': '🛠️ Жалобы на администрацию'
 };
 
-// Переключение экранов (Фронтенд навигация)
+// Переключение экранов
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById(screenId).classList.remove('hidden');
@@ -117,41 +117,49 @@ function viewMyProfile() {
 function openProfile(uid) {
     viewedUserId = uid;
     showScreen('screen-profile');
+    
     db.ref('users/' + uid).once('value').then(snapshot => {
         const user = snapshot.val();
         if(!user) return;
 
-        // Наполнение данными (Здесь все строки разделены корректно)
-        document.getElementById('prof-name').innerText = user.username;
-        document.getElementById('prof-role').innerText = user.role;
-        document.getElementById('prof-desc').innerText = user.description;
-        document.getElementById('prof-avatar').src = user.avatar;
-        document.getElementById('prof-banner').style.backgroundImage = `url('${user.banner}')`;
+        // Элементы вынесены отдельно, чтобы избежать склеивания строк
+        const elName = document.getElementById('prof-name');
+        const elRole = document.getElementById('prof-role');
+        const elDesc = document.getElementById('prof-desc');
+        const elAvatar = document.getElementById('prof-avatar');
+        const elBanner = document.getElementById('prof-banner');
+
+        elName.innerText = user.username;
+        elRole.innerText = user.role;
+        elDesc.innerText = user.description;
+        elAvatar.src = user.avatar;
+        elBanner.style.backgroundImage = "url('" + user.banner + "')";
 
         // Цвет роли
-        const roleBadge = document.getElementById('prof-role');
         if(user.role === 'Admin') { 
-            roleBadge.style.backgroundColor = 'var(--admin-color)'; 
+            elRole.style.backgroundColor = 'var(--admin-color)'; 
         } else { 
-            roleBadge.style.backgroundColor = 'var(--user-color)'; 
+            elRole.style.backgroundColor = 'var(--user-color)'; 
         }
 
         // Показ блока редактирования
+        const editBlock = document.getElementById('profile-edit-block');
         if(currentUserData && currentUserData.uid === uid) {
-            document.getElementById('profile-edit-block').classList.remove('hidden');
+            editBlock.classList.remove('hidden');
             document.getElementById('edit-name').value = user.username;
             document.getElementById('edit-avatar').value = user.avatar;
             document.getElementById('edit-banner').value = user.banner;
             document.getElementById('edit-desc').value = user.description;
         } else {
-            document.getElementById('profile-edit-block').classList.add('hidden');
+            editBlock.classList.add('hidden');
         }
 
         // Показ админ-панели
+        const adminBlock = document.getElementById('admin-actions-block');
         if(currentUserData && currentUserData.role === 'Admin' && currentUserData.uid !== uid) {
-            document.getElementById('admin-actions-block').classList.remove('hidden');
+            adminBlock.classList.remove('hidden');
         } else {
-            document.getElementById('admin-actions-block').classList.add('hidden');
+            adminBlock.classList.add('hidden');
         }
     });
 }
@@ -159,10 +167,8 @@ function openProfile(uid) {
 // СОХРАНЕНИЕ ИЗМЕНЕНИЙ ПРОФИЛЯ
 function saveProfile() {
     if(!currentUserData || currentUserData.uid !== viewedUserId) return;
-    
-    if(currentUserData.isMuted) {
-        return alert("Вы не можете редактировать профиль, так как у вас мут!");
-    }
+    if(currentUserData.isMuted) return alert("Вы замучены!");
+
     const newName = document.getElementById('edit-name').value.trim();
     const newAvatar = document.getElementById('edit-avatar').value.trim();
     const newBanner = document.getElementById('edit-banner').value.trim();
@@ -218,7 +224,7 @@ function openSection(sectionId) {
             const topic = data[topicId];
             const item = document.createElement('div');
             item.className = 'forum-section';
-            item.onclick = () => openTopic(topicId);
+            item.onclick = function() { openTopic(topicId); };
             item.innerHTML = `
                 <h3>${topic.title}</h3>
                 <p>Автор: ${topic.authorName} | Ответов: ${topic.replyCount || 0}</p>
@@ -229,12 +235,12 @@ function openSection(sectionId) {
 }
 
 function showTopicForm() {
-    if (currentUserData && currentUserData.isMuted) return alert("У вас активный мут, вы не можете создавать темы!");
+    if (currentUserData && currentUserData.isMuted) return alert("У вас активный мут!");
     document.getElementById('topic-form-block').classList.toggle('hidden');
 }
 
 function createNewTopic() {
-    if (!currentUserData) return alert("Войдите на forum!");
+    if (!currentUserData) return alert("Войдите на форум!");
     if (currentUserData.isMuted) return alert("У вас мут!");
 
     const title = document.getElementById('new-topic-title').value.trim();
@@ -265,7 +271,7 @@ function openTopic(topicId) {
     if (currentUserData) commentBlock.classList.remove('hidden');
     else commentBlock.classList.add('hidden');
 
-    db.ref(`topics/${currentSectionId}/${topicId}`).once('value').then(snapshot => {
+    db.ref('topics/' + currentSectionId + '/' + topicId).once('value').then(snapshot => {
         const topic = snapshot.val();
         if (!topic) return;
 
@@ -297,9 +303,10 @@ function openTopic(topicId) {
     });
 }
 
+// ОТВЕТ В ТЕМУ
 function createNewComment() {
     if (!currentUserData) return alert("Авторизуйтесь!");
-    if (currentUserData.isMuted) return alert("Вы замучены и не можете писать ответы!");
+    if (currentUserData.isMuted) return alert("Вы замучены!");
 
     const text = document.getElementById('new-comment-text').value.trim();
     if (!text) return alert("Введите текст сообщения!");
@@ -310,7 +317,7 @@ function createNewComment() {
         authorId: currentUserData.uid,
         authorName: currentUserData.username
     }).then(() => {
-        const tRef = db.ref(`topics/${currentSectionId}/${currentTopicId}/replyCount`);
+        const tRef = db.ref('topics/' + currentSectionId + '/' + currentTopicId + '/replyCount');
         tRef.transaction(currentCount => (currentCount || 0) + 1);
         document.getElementById('new-comment-text').value = '';
     });
