@@ -86,9 +86,52 @@
             </div>
         </section>
 
+        <!-- ЭКРАН: СПИСОК ТЕМ В РАЗДЕЛЕ -->
+01:45
+<section id="screen-section" class="screen hidden">
+            <div class="category-title" id="section-title">Название раздела</div>
+            <div class="section-actions" style="margin: 15px 0; display: flex; gap: 10px;">
+                <button id="btn-create-topic" onclick="showTopicForm()" class="btn-accent">Создать тему</button>
+                <button onclick="showScreen('screen-forum')">Назад к разделам</button>
+            </div>
+
+            <!-- Форма создания темы -->
+            <div id="topic-form-block" class="auth-form hidden" style="max-width: 100%; text-align: left; margin: 20px 0;">
+                <h3>Новая тема</h3>
+                <input type="text" id="new-topic-title" placeholder="Заголовок темы (например: Жалоба на игрока #123)">
+                <textarea id="new-topic-text" placeholder="Текст вашей темы..." style="width:100%; height:150px; background:var(--bg-input); border:1px solid #3a3f50; color:white; padding:10px; box-sizing:border-box; border-radius:4px; resize:vertical;"></textarea>
+                <button onclick="createNewTopic()" class="btn-accent" style="margin-top:10px;">Опубликовать</button>
+            </div>
+
+            <!-- Сюда подгружаются темы -->
+            <div id="topics-list"></div>
+        </section>
+
+        <!-- ЭКРАН: ПРОСМОТР ТЕМЫ -->
+        <section id="screen-topic-view" class="screen hidden">
+            <button onclick="backToSection()" style="margin-bottom: 20px;">Назад к списку тем</button>
+            
+            <div class="forum-category" style="padding: 20px;">
+                <h2 id="view-topic-title" style="margin-top:0; color:var(--accent-color);"></h2>
+                <div style="font-size:13px; color:#a0aec0; margin-bottom:15px;">
+                    Автор: <span id="view-topic-author" style="font-weight:bold; color:#fff;"></span>
+                </div>
+                <p id="view-topic-text" style="white-space: pre-wrap; line-height: 1.6;"></p>
+            </div>
+
+            <h3>Ответы в теме</h3>
+            <div id="comments-list"></div>
+
+            <!-- Форма ответа -->
+            <div id="comment-form-block" class="profile-actions hidden" style="background:var(--bg-card); border-radius:6px; margin-top:20px;">
+                <h3>Оставить ответ</h3>
+                <textarea id="new-comment-text" placeholder="Напишите ваш ответ..." style="width:100%; height:100px; background:var(--bg-input); border:1px solid #3a3f50; color:white; padding:10px; box-sizing:border-box; border-radius:4px; resize:vertical;"></textarea>
+                <button onclick="createNewComment()" class="btn-accent" style="margin-top:10px;">Отправить ответ</button>
+            </div>
+        </section>
+
         <!-- ЭКРАН: ПРОФИЛЬ -->
-01:27
-<section id="screen-profile" class="screen hidden">
+        <section id="screen-profile" class="screen hidden">
             <div class="profile-card">
                 <div class="profile-banner" id="prof-banner" style="background-image: url('https://placehold.co/1000x300/222/fff?text=RusCity+Life+RP');"></div>
                 <div class="profile-info">
@@ -100,17 +143,18 @@
                     </div>
                 </div>
                 
-                <!-- Кнопки управления (видны только владельцу или админу) -->
+                <!-- Блок редактирования -->
                 <div id="profile-edit-block" class="profile-actions hidden">
                     <h3>Редактировать профиль</h3>
-                    <input type="text" id="edit-name" placeholder="Новый Никнейм">
+                    <input type="text" id="edit-name" placeholder="Новый Игровой Ник">
                     <input type="text" id="edit-avatar" placeholder="Ссылка на URL аватара">
                     <input type="text" id="edit-banner" placeholder="Ссылка на URL баннера">
-                    <textarea id="edit-desc" placeholder="О себе..."></textarea>
+01:45
+<textarea id="edit-desc" placeholder="О себе..."></textarea>
                     <button onclick="saveProfile()" class="btn-accent">Сохранить изменения</button>
                 </div>
 
-                <!-- Админ-панель модерации над пользователем -->
+                <!-- Блок модерации -->
                 <div id="admin-actions-block" class="profile-actions admin-zone hidden">
                     <h3>Панель модерации (Администрация)</h3>
                     <div class="btn-group">
@@ -124,12 +168,12 @@
         </section>
     </main>
 
-    <!-- Подключаем Firebase (Используем CDN) -->
+    <!-- Инициализация Firebase CDN -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
-    <!-- Наш скрипт логики -->
+    <!-- Основной скрипт -->
     <script src="app.js"></script>
 </body>
 </html>
