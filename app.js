@@ -6,7 +6,7 @@ const firebaseConfig = {
     projectId: "ruscity-349e7",
     storageBucket: "ruscity-349e7.firebasestorage.app",
     messagingSenderId: "728638066749",
-    appId: "1:728638066749:web:78b207bc6765e3dc685a54", // Исправлен регистр appId
+    appId: "1:728638066749:web:78b207bc6765e3dc685a54",
     measurementId: "G-QKSHRLLLJS"
 };
 
@@ -22,12 +22,12 @@ let currentTopicId = null;
 
 // Названия разделов для списков
 const sectionNames = {
-    'news': '📢  Новости и объявления',
-    'rules': '📜  Правила сервера',
-    'gos': '🏢  Государственные организации',
-    'crime': '🥷  Криминальные организации',
-    'report-players': '🚫  Жалобы на игроков',
-    'report-admins': '🛠️  Жалобы на администрацию'
+    'news': '📢 Новости и объявления',
+    'rules': '📜 Правила сервера',
+    'gos': '🏢 Государственные организации',
+    'crime': '🥷 Криминальные организации',
+    'report-players': '🚫 Жалобы на игроков',
+    'report-admins': '🛠️ Жалобы на администрацию'
 };
 
 // Переключение экранов (Фронтенд навигация)
@@ -49,11 +49,10 @@ function registerUser() {
     auth.createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const uid = userCredential.user.uid;
-            // Базовые данные нового аккаунта в БД
             db.ref('users/' + uid).set({
                 username: username,
                 loginName: username.toLowerCase().replace(/ /g,"_"),
-                role: "User", // По умолчанию обычный игрок
+                role: "User",
                 avatar: "https://placehold.co/150/444/fff?text=" + username[0],
                 banner: "https://placehold.co/1000x300/222/fff?text=RusCity+Life+RP",
                 description: "Новый игрок RusCity Life RP!",
@@ -88,13 +87,12 @@ function logout() {
 // Отслеживание состояния авторизации
 auth.onAuthStateChanged(user => {
     if (user) {
-        // Проверяем бан пользователя сразу при входе
         db.ref('users/' + user.uid).on('value', snapshot => {
             const data = snapshot.val();
             if(!data) return;
             
             if(data.isBanned) {
-                alert("Ваш аккауйн заблокирован на форуме RusCity Life RP!");
+                alert("Ваш аккаунт заблокирован на форуме RusCity Life RP!");
                 auth.signOut();
                 return;
             }
@@ -105,8 +103,7 @@ auth.onAuthStateChanged(user => {
             document.getElementById('header-username').innerText = data.username;
         });
     } else {
-02:14
-document.getElementById('auth-buttons').classList.remove('hidden');
+        document.getElementById('auth-buttons').classList.remove('hidden');
         document.getElementById('user-menu').classList.add('hidden');
     }
 });
@@ -124,7 +121,7 @@ function openProfile(uid) {
         const user = snapshot.val();
         if(!user) return;
 
-        // Наполнение данными
+        // Наполнение данными (Здесь все строки разделены корректно)
         document.getElementById('prof-name').innerText = user.username;
         document.getElementById('prof-role').innerText = user.role;
         document.getElementById('prof-desc').innerText = user.description;
@@ -133,10 +130,13 @@ function openProfile(uid) {
 
         // Цвет роли
         const roleBadge = document.getElementById('prof-role');
-        if(user.role === 'Admin') { roleBadge.style.backgroundColor = 'var(--admin-color)'; }
-        else { roleBadge.style.backgroundColor = 'var(--user-color)'; }
+        if(user.role === 'Admin') { 
+            roleBadge.style.backgroundColor = 'var(--admin-color)'; 
+        } else { 
+            roleBadge.style.backgroundColor = 'var(--user-color)'; 
+        }
 
-        // Показ блока редактирования (если это твой профиль)
+        // Показ блока редактирования
         if(currentUserData && currentUserData.uid === uid) {
             document.getElementById('profile-edit-block').classList.remove('hidden');
             document.getElementById('edit-name').value = user.username;
@@ -147,7 +147,7 @@ function openProfile(uid) {
             document.getElementById('profile-edit-block').classList.add('hidden');
         }
 
-        // Показ админ-панели (если текущий авторизованный — Admin, а просматриваемый — не он сам)
+        // Показ админ-панели
         if(currentUserData && currentUserData.role === 'Admin' && currentUserData.uid !== uid) {
             document.getElementById('admin-actions-block').classList.remove('hidden');
         } else {
@@ -179,7 +179,7 @@ function saveProfile() {
     });
 }
 
-// АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (Бан, Разбан, Мут, Размут)
+// АДМИНИСТРАТИВНЫЕ ФУНКЦИИ
 function moderateUser(action) {
     if(!currentUserData || currentUserData.role !== 'Admin') return alert("Нет прав!");
     let updateData = {};
@@ -193,14 +193,14 @@ function moderateUser(action) {
     });
 }
 
-// ПОЛНОЦЕННАЯ ЛОГИКА ТЕМ И РАЗДЕЛОВ (Вместо старой заглушки с alert)
+// ЛОГИКА ТЕМ И РАЗДЕЛОВ
 function openSection(sectionId) {
     currentSectionId = sectionId;
     showScreen('screen-section');
     document.getElementById('section-title').innerText = sectionNames[sectionId] || "Раздел форума";
     document.getElementById('topic-form-block').classList.add('hidden');
-02:14
-const btnCreate = document.getElementById('btn-create-topic');
+
+    const btnCreate = document.getElementById('btn-create-topic');
     if (currentUserData) btnCreate.classList.remove('hidden');
     else btnCreate.classList.add('hidden');
 
@@ -234,7 +234,7 @@ function showTopicForm() {
 }
 
 function createNewTopic() {
-    if (!currentUserData) return alert("Войдите на форум!");
+    if (!currentUserData) return alert("Войдите на forum!");
     if (currentUserData.isMuted) return alert("У вас мут!");
 
     const title = document.getElementById('new-topic-title').value.trim();
@@ -300,8 +300,8 @@ function openTopic(topicId) {
 function createNewComment() {
     if (!currentUserData) return alert("Авторизуйтесь!");
     if (currentUserData.isMuted) return alert("Вы замучены и не можете писать ответы!");
-02:14
-const text = document.getElementById('new-comment-text').value.trim();
+
+    const text = document.getElementById('new-comment-text').value.trim();
     if (!text) return alert("Введите текст сообщения!");
 
     const commentRef = db.ref('comments/' + currentTopicId).push();
