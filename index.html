@@ -3,177 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RusCity Life RP — Форум проекта</title>
+    <title>RusCity Life RP — Форум</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Скрипты Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
-    <!-- Шапка форума -->
-    <header class="main-header">
-        <div class="logo">RusCity Life <span>RP</span></div>
-        <nav class="nav-menu">
-            <button id="btn-home" onclick="showScreen('screen-forum')">Главная</button>
-            <div id="auth-buttons">
-                <button onclick="showScreen('screen-login')">Вход</button>
-                <button onclick="showScreen('screen-register')" class="btn-accent">Регистрация</button>
+    <!-- СТИЛЬНАЯ И УДОБНАЯ ШАПКА ФОРУМА -->
+    <header class="forum-header">
+        <div class="header-container">
+            <div class="header-logo" onclick="showScreen('screen-forum')">
+                <span class="logo-main">RusCity</span>
+                <span class="logo-sub">Life RP</span>
             </div>
-            <div id="user-menu" class="hidden">
-                <span id="header-username" onclick="viewMyProfile()">Никнейм</span>
-                <button onclick="logout()">Выйти</button>
+
+            <nav class="header-nav">
+                <button class="nav-link" onclick="showScreen('screen-forum')">🧱 Главная</button>
+                <button class="nav-link" onclick="openSection('news')">📢 Новости</button>
+                <button class="nav-link" onclick="openSection('report-players')">🚫 Жалобы</button>
+            </nav>
+
+            <div class="header-auth-zone">
+                <!-- Гость -->
+                <div id="auth-buttons" class="auth-buttons">
+                    <button class="btn-login" onclick="showScreen('screen-login')">Вход</button>
+                    <button class="btn-register" onclick="showScreen('screen-register')">Регистрация</button>
+                </div>
+
+                <!-- Авторизован -->
+                <div id="user-menu" class="user-menu hidden">
+                    <div class="user-profile-trigger" onclick="viewMyProfile()">
+                        <span id="header-username" class="header-nick">Загрузка...</span>
+                        <div class="avatar-mini-wrapper">
+                            <img id="header-avatar" src="https://placehold.co/40" alt="Аватар" class="avatar-mini">
+                        </div>
+                    </div>
+                    <button class="btn-logout" onclick="logout()" title="Выйти из аккаунта">🚪</button>
+                </div>
             </div>
-        </nav>
+        </div>
     </header>
 
-    <main class="container">
-        <!-- ЭКРАН: ВХОД -->
-        <section id="screen-login" class="screen hidden">
-            <div class="auth-form">
-                <h2>Авторизация</h2>
-                <input type="email" id="login-email" placeholder="Email (Почта)" required>
-                <input type="password" id="login-password" placeholder="Пароль" required>
-                <button onclick="loginUser()">Войти</button>
+    <main class="main-container">
+
+        <!-- ЭКРАН: ГЛАВНАЯ (СПИСОК РАЗДЕЛОВ) -->
+        <div id="screen-forum" class="screen">
+            <h2 class="page-title">Разделы форума</h2>
+            <div class="sections-list">
+                <div class="forum-section" onclick="openSection('news')"><h3>📢 Новости и объявления</h3><p>Важные изменения проекта</p></div>
+                <div class="forum-section" onclick="openSection('rules')"><h3>📜 Правила сервера</h3><p>Обязательно к прочтению</p></div>
+                <div class="forum-section" onclick="openSection('gos')"><h3>🏢 Государственные организации</h3><p>Фракции Правительства, Полиции, Армии, МЗ</p></div>
+                <div class="forum-section" onclick="openSection('crime')"><h3>🥷 Криминальные организации</h3><p>ОПГ, мафии, банды</p></div>
+                <div class="forum-section" onclick="openSection('report-players')"><h3>🚫 Жалобы на игроков</h3><p>Нарушения правил сервера</p></div>
+                <div class="forum-section" onclick="openSection('report-admins')"><h3>🛠️ Жалобы на администрацию</h3><p>Обжалования наказаний</p></div>
             </div>
-        </section>
+        </div>
+
+        <!-- ЭКРАН: ВХОД -->
+        <div id="screen-login" class="screen hidden auth-card">
+            <h2>Вход на форум</h2>
+            <input type="email" id="login-email" placeholder="Электронная почта">
+            <input type="password" id="login-password" placeholder="Пароль">
+            <button class="btn-primary" onclick="loginUser()">Войти</button>
+            <p onclick="showScreen('screen-register')" class="auth-toggle">Нет аккаунта? Зарегистрироваться</p>
+        </div>
 
         <!-- ЭКРАН: РЕГИСТРАЦИЯ -->
-        <section id="screen-register" class="screen hidden">
-            <div class="auth-form">
-                <h2>Регистрация</h2>
-                <input type="text" id="reg-username" placeholder="Игровой Ник (Имя_Фамилия)" required>
-                <input type="email" id="reg-email" placeholder="Электронная почта" required>
-                <input type="password" id="reg-password" placeholder="Пароль" required>
-                <input type="password" id="reg-password-confirm" placeholder="Повторите пароль" required>
-                <button onclick="registerUser()">Создать аккаунт</button>
-            </div>
-        </section>
+        <div id="screen-register" class="screen hidden auth-card">
+            <h2>Регистрация аккаунта</h2>
+            <input type="text" id="reg-username" placeholder="Игровой Никнейм (Ivan_Ivanov)">
+            <input type="email" id="reg-email" placeholder="Электронная почта">
+            <input type="password" id="reg-password" placeholder="Пароль">
+            <input type="password" id="reg-password-confirm" placeholder="Подтвердите пароль">
+            <button class="btn-primary" onclick="registerUser()">Создать аккаунт</button>
+            <p onclick="showScreen('screen-login')" class="auth-toggle">Уже есть аккаунт? Войти</p>
+        </div>
 
-        <!-- ЭКРАН: ГЛАВНЫЙ ФОРУМ (РАЗДЕЛЫ) -->
-        <section id="screen-forum" class="screen">
-            <div class="forum-category">
-                <div class="category-title">Важная информация</div>
-                <div class="forum-section" onclick="openSection('news')">
-                    <h3>📢  Новости и объявления</h3>
-                    <p>Основные новости проекта RusCity Life RP</p>
-                </div>
-                <div class="forum-section" onclick="openSection('rules')">
-                    <h3>📜  Правила сервера</h3>
-                    <p>Правила игрового процесса, форума и Discord</p>
-                </div>
+        <!-- ЭКРАН: ПРОСМОТР РАЗДЕЛА (ТЕМЫ) -->
+        <div id="screen-section" class="screen hidden">
+            <button class="btn-back" onclick="showScreen('screen-forum')">⬅ Назад к разделам</button>
+            <div class="section-header-block">
+                <h2 id="section-title">Раздел</h2>
+                <button id="btn-create-topic" class="btn-primary hidden" onclick="showTopicForm()">📝 Создать тему</button>
             </div>
 
-            <div class="forum-category">
-                <div class="category-title">Игровой процесс</div>
-                <div class="forum-section" onclick="openSection('gos')">
-                    <h3>🏢  Государственные организации</h3>
-                    <p>Правительство, LSPD, FIB, EMS, Army</p>
-                </div>
-                <div class="forum-section" onclick="openSection('crime')">
-                    <h3>🥷  Криминальные организации</h3>
-                    <p>Банды, мафии, синдикаты</p>
-                </div>
-            </div>
-
-            <div class="forum-category">
-                <div class="category-title">Жалобы и апелляции</div>
-                <div class="forum-section" onclick="openSection('report-players')">
-                    <h3>🚫  Жалобы на игроков</h3>
-                    <p>Нарушения правил сервера со стороны игроков</p>
-                </div>
-                <div class="forum-section" onclick="openSection('report-admins')">
-                    <h3>🛠️  Жалобы на администрацию</h3>
-                    <p>Обжалование наказаний и действия администрации</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- ЭКРАН: СПИСОК ТЕМ В РАЗДЕЛЕ -->
-01:45
-<section id="screen-section" class="screen hidden">
-            <div class="category-title" id="section-title">Название раздела</div>
-            <div class="section-actions" style="margin: 15px 0; display: flex; gap: 10px;">
-                <button id="btn-create-topic" onclick="showTopicForm()" class="btn-accent">Создать тему</button>
-                <button onclick="showScreen('screen-forum')">Назад к разделам</button>
-            </div>
-
-            <!-- Форма создания темы -->
-            <div id="topic-form-block" class="auth-form hidden" style="max-width: 100%; text-align: left; margin: 20px 0;">
+            <div id="topic-form-block" class="hidden edit-profile-card">
                 <h3>Новая тема</h3>
-                <input type="text" id="new-topic-title" placeholder="Заголовок темы (например: Жалоба на игрока #123)">
-                <textarea id="new-topic-text" placeholder="Текст вашей темы..." style="width:100%; height:150px; background:var(--bg-input); border:1px solid #3a3f50; color:white; padding:10px; box-sizing:border-box; border-radius:4px; resize:vertical;"></textarea>
-                <button onclick="createNewTopic()" class="btn-accent" style="margin-top:10px;">Опубликовать</button>
+                <input type="text" id="new-topic-title" placeholder="Заголовок темы">
+                <textarea id="new-topic-text" placeholder="Текст вашего обращения / темы" rows="5"></textarea>
+                <button class="btn-primary" onclick="createNewTopic()">Опубликовать</button>
             </div>
 
-            <!-- Сюда подгружаются темы -->
-            <div id="topics-list"></div>
-        </section>
+            <div id="topics-list" class="sections-list"></div>
+        </div>
 
-        <!-- ЭКРАН: ПРОСМОТР ТЕМЫ -->
-        <section id="screen-topic-view" class="screen hidden">
-            <button onclick="backToSection()" style="margin-bottom: 20px;">Назад к списку тем</button>
-            
-            <div class="forum-category" style="padding: 20px;">
-                <h2 id="view-topic-title" style="margin-top:0; color:var(--accent-color);"></h2>
-                <div style="font-size:13px; color:#a0aec0; margin-bottom:15px;">
-                    Автор: <span id="view-topic-author" style="font-weight:bold; color:#fff;"></span>
-                </div>
-                <p id="view-topic-text" style="white-space: pre-wrap; line-height: 1.6;"></p>
+        <!-- ЭКРАН: ПРОСМОТР ТЕМЫ И ОТВЕТЫ -->
+        <div id="screen-topic-view" class="screen hidden">
+            <button class="btn-back" onclick="backToSection()">⬅ Назад к списку тем</button>
+            <div class="topic-main-post">
+                <h2 id="view-topic-title">Заголовок темы</h2>
+                <div class="topic-meta">Автор: <span id="view-topic-author">...</span></div>
+                <div id="view-topic-text" class="topic-body-text">Текст...</div>
             </div>
 
-            <h3>Ответы в теме</h3>
+            <h3 class="replies-heading">Обсуждение:</h3>
             <div id="comments-list"></div>
 
-            <!-- Форма ответа -->
-            <div id="comment-form-block" class="profile-actions hidden" style="background:var(--bg-card); border-radius:6px; margin-top:20px;">
-                <h3>Оставить ответ</h3>
-                <textarea id="new-comment-text" placeholder="Напишите ваш ответ..." style="width:100%; height:100px; background:var(--bg-input); border:1px solid #3a3f50; color:white; padding:10px; box-sizing:border-box; border-radius:4px; resize:vertical;"></textarea>
-                <button onclick="createNewComment()" class="btn-accent" style="margin-top:10px;">Отправить ответ</button>
+            <div id="comment-form-block" class="hidden edit-profile-card">
+                <h4>Оставить ответ в теме</h4>
+                <textarea id="new-comment-text" placeholder="Введите ваше сообщение..." rows="3"></textarea>
+                <button class="btn-primary" onclick="createNewComment()">Отправить ответ</button>
             </div>
-        </section>
+        </div>
 
         <!-- ЭКРАН: ПРОФИЛЬ -->
-        <section id="screen-profile" class="screen hidden">
-            <div class="profile-card">
-                <div class="profile-banner" id="prof-banner" style="background-image: url('https://placehold.co/1000x300/222/fff?text=RusCity+Life+RP');"></div>
-                <div class="profile-info">
-                    <img id="prof-avatar" src="https://placehold.co/150/444/fff?text=User" alt="Аватар" class="avatar">
-                    <div class="profile-meta">
-                        <h2 id="prof-name">Никнейм</h2>
-                        <span id="prof-role" class="badge">Пользователь</span>
-                        <p id="prof-desc">Описание профиля отсутствует.</p>
-                    </div>
-                </div>
-                
-                <!-- Блок редактирования -->
-                <div id="profile-edit-block" class="profile-actions hidden">
-                    <h3>Редактировать профиль</h3>
-                    <input type="text" id="edit-name" placeholder="Новый Игровой Ник">
-                    <input type="text" id="edit-avatar" placeholder="Ссылка на URL аватара">
-                    <input type="text" id="edit-banner" placeholder="Ссылка на URL баннера">
-01:45
-<textarea id="edit-desc" placeholder="О себе..."></textarea>
-                    <button onclick="saveProfile()" class="btn-accent">Сохранить изменения</button>
-                </div>
-
-                <!-- Блок модерации -->
-                <div id="admin-actions-block" class="profile-actions admin-zone hidden">
-                    <h3>Панель модерации (Администрация)</h3>
-                    <div class="btn-group">
-                        <button onclick="moderateUser('mute')" class="btn-warn">Выдать мут</button>
-                        <button onclick="moderateUser('unmute')">Снять мут</button>
-                        <button onclick="moderateUser('ban')" class="btn-danger">Забанить</button>
-                        <button onclick="moderateUser('unban')">Разбанить</button>
-                    </div>
+        <div id="screen-profile" class="screen hidden">
+            <div id="prof-banner" class="profile-banner">
+                <div class="profile-avatar-container">
+                    <img id="prof-avatar" src="" alt="Аватар профиля">
                 </div>
             </div>
-        </section>
+            <div class="profile-info">
+                <h2 id="prof-name">Загрузка...</h2>
+                <span id="prof-role" class="role-badge">Пользователь</span>
+                <p id="prof-desc" class="profile-bio">Описание отсутствует.</p>
+            </div>
+
+            <!-- Административные действия -->
+            <div id="admin-actions-block" class="hidden admin-panel">
+                <h3>🛠️ Панель модерации</h3>
+                <button onclick="moderateUser('mute')" class="btn-warn">Выдать мут</button>
+                <button onclick="moderateUser('unmute')" class="btn-success">Снять мут</button>
+                <button onclick="moderateUser('ban')" class="btn-danger">Забанить</button>
+                <button onclick="moderateUser('unban')" class="btn-success">Разбанить</button>
+            </div>
+
+            <!-- Настройки профиля -->
+            <div id="profile-edit-block" class="hidden edit-profile-card">
+                <h3>⚙️ Настройки профиля</h3>
+                <div class="form-group">
+                    <label>Игровой никнейм:</label>
+                    <input type="text" id="edit-name">
+                </div>
+                <div class="form-group">
+                    <label>Ссылка на аватарку (URL картинки):</label>
+                    <input type="text" id="edit-avatar" placeholder="https://i.imgur.com/... или ссылка на фото">
+                </div>
+                <div class="form-group">
+                    <label>Ссылка на баннер профиля (URL картинки):</label>
+                    <input type="text" id="edit-banner" placeholder="https://i.imgur.com/... или ссылка на фон">
+                </div>
+                <div class="form-group">
+                    <label>О себе:</label>
+                    <textarea id="edit-desc" rows="3"></textarea>
+                </div>
+                <button class="btn-primary" onclick="saveProfile()">Сохранить изменения</button>
+            </div>
+        </div>
+
     </main>
 
-    <!-- Инициализация Firebase CDN -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-    
-    <!-- Основной скрипт -->
     <script src="app.js"></script>
 </body>
 </html>
