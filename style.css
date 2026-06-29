@@ -179,3 +179,31 @@ body {
     padding: 6px;
     border-radius: 4px;
 }
+/* Дополнительные стили для тем и категорий форума */
+.forum-category-item {
+    background: #232936;
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    border-left: 4px solid #3b82f6; /* Синий оттенок для категорий */
+    transition: transform 0.2s, background 0.2s;
+}
+.forum-category-item:hover {
+    transform: translateX(4px);
+    background: #2b3344;
+}
+
+.forum-category-item h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.15rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.forum-category-item p {
+    margin: 0;
+    color: #a0aab8;
+    font-size: 0.9rem;
+}
