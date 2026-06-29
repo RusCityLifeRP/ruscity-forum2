@@ -180,13 +180,17 @@ async function saveProfileSettings() {
         btnSave.disabled = true;
     }
 
-    // Вспомогательная функция для перевода файла в байты (Uint8Array)
-    const fileToUint8Array = (file) => {
+    // Функция перевода файла в строку Base64 (Универсальный обход CORS)
+    const fileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = (e) => resolve(new Uint8Array(e.target.result));
-            reader.onerror = (err) => reject(err);
-            reader.readAsArrayBuffer(file);
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                // Отрезаем технический заголовок "data:image/png;base64,"
+                const base64String = reader.result.split(',')[1];
+                resolve(base64String);
+            };
+            reader.onerror = (error) => reject(error);
         });
     };
 
@@ -201,35 +205,32 @@ async function saveProfileSettings() {
         let bannerUrl = (currentUserData && currentUserData.banner) || "";
         const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
-        // БЕЗОПАСНАЯ ЗАГРУЗКА АВАТАРКИ ЧЕРЕЗ БАЙТЫ
+        // ОБХОД CORS ДЛЯ АВАТАРКИ ЧЕРЕЗ DATA_URL / BASE64
         if (avatarFile) {
             if (btnSave) btnSave.innerText = "⏳ Загрузка аватарки...";
             const fileName = `${uid}_${Date.now()}`;
             const avatarRef = storage.ref().child('avatars').child(fileName);
             
-            // Преобразуем файл в байты, чтобы обойти блокировки CORS
-            const fileBytes = await fileToUint8Array(avatarFile);
-            const metadata = { contentType: avatarFile.type };
+            const base64String = await fileToBase64(avatarFile);
             
-            const snapshot = await avatarRef.put(fileBytes, metadata);
+            // Отправляем как строку base64 - это обходит CORS блокировки браузера
+            const snapshot = await avatarRef.putString(base64String, 'base64', { contentType: avatarFile.type });
             avatarUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // БЕЗОПАСНАЯ ЗАГРУЗКА БАННЕРА ЧЕРЕЗ БАЙТЫ
+        // ОБХОД CORS ДЛЯ БАННЕРА
         if (bannerFile) {
             if (btnSave) btnSave.innerText = "⏳ Загрузка баннера...";
             const fileName = `${uid}_${Date.now()}`;
             const bannerRef = storage.ref().child('banners').child(fileName);
             
-            // Преобразуем файл в байты
-            const fileBytes = await fileToUint8Array(bannerFile);
-            const metadata = { contentType: bannerFile.type };
+            const base64String = await fileToBase64(bannerFile);
             
-            const snapshot = await bannerRef.put(fileBytes, metadata);
+            const snapshot = await bannerRef.putString(base64String, 'base64', { contentType: bannerFile.type });
             bannerUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // ЗАПИСЬ ДАННЫХ В REALTIME DATABASE
+        // ЗАПИСЬ В REALTIME DATABASE
         if (btnSave) btnSave.innerText = "⏳ Запись в базу данных...";
         await db.ref('users/' + uid).update({
             username: nickname, 
@@ -242,8 +243,8 @@ async function saveProfileSettings() {
         location.reload(); 
 
     } catch (error) {
-        console.error("Критическая ошибка при сохранении:", error);
-        alert("Не удалось сохранить изменения. Ошибка: " + error.message);
+        console.error("Критическая ошибка:", error);
+        alert("Не удалось сохранить. Ошибка: " + error.message);
     } finally {
         if (btnSave) {
             btnSave.innerText = "Сохранить изменения";
@@ -251,6 +252,7 @@ async function saveProfileSettings() {
         }
     }
 }
+
 
 // ==========================================
 // СИСТЕМА РЕГИСТРАЦИИ И ВХОДА (ИСПРАВЛЕНО)
