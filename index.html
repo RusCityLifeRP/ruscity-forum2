@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RusCity Life RP — Форум</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Подключение Firebase Legacy SDK (убедись, что версии совпадают с твоими) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
-    <!-- Шапка форума -->
     <header class="forum-header">
         <div class="header-logo" onclick="showScreen('screen-forum')">
             <span class="logo-main">RusCity</span> <span class="logo-sub">Life RP</span>
@@ -23,7 +21,6 @@
             <button id="btn-admin-panel" class="nav-link hidden" onclick="openAdminPanel()">Админ-панель</button>
         </nav>
 
-        <!-- Блок профиля / Авторизации -->
         <div class="auth-zone">
             <div id="auth-buttons">
                 <button onclick="showScreen('screen-login')" class="btn-primary">Войти</button>
@@ -38,14 +35,11 @@
 
     <main class="forum-container">
         
-        <!-- ЭКРАН 1: Выбор игровых серверов -->
         <div id="screen-forum" class="screen animate-fade">
             <h2 class="page-title">Игровые серверы RusCity Life RP</h2>
-            <!-- JS будет динамически загружать карточки серверов сюда -->
             <div id="servers-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 2: Вход / Авторизация -->
         <div id="screen-login" class="screen hidden auth-card animate-fade">
             <h2>Вход на форум</h2>
             <div class="form-group">
@@ -55,12 +49,10 @@
             </div>
         </div>
 
-        <!-- ЭКРАН 3: Админ-панель -->
         <div id="screen-admin" class="screen hidden animate-fade">
             <h2>Управление пользователями (Выдача ролей)</h2>
             <div id="admin-users-list" class="admin-list-container">
-                <!-- Сюда JS подгрузит пользователей -->
-            </div>
+                </div>
         </div>
 
     </main>
