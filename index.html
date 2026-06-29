@@ -11,10 +11,9 @@
 </head>
 <body>
 
-    <!-- Шапка сайта -->
     <header class="forum-header">
         <div class="header-logo" onclick="showScreen('screen-forum')">
-            <span class="logo-main">RusCity</span> <span class="logo-sub">Life RP</span>
+            <span class="logo-main">RusCity</span><span class="logo-sub">Life RP</span>
         </div>
         
         <nav class="header-nav">
@@ -35,10 +34,8 @@
         </div>
     </header>
 
-    <!-- Основной контейнер -->
     <main class="forum-container">
         
-        <!-- ЭКРАН 1: Список серверов и важная информация -->
         <div id="screen-forum" class="screen">
             <h2 class="page-title">Важная информация</h2>
             <div id="info-sections-list" class="sections-list" style="margin-bottom: 40px;"></div>
@@ -47,14 +44,12 @@
             <div id="servers-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 2: Категории сервера -->
         <div id="screen-categories" class="screen hidden">
             <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
             <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
             <div id="categories-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 3: Список фракций -->
         <div id="screen-factions" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
@@ -72,7 +67,6 @@
             <div id="factions-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 4: Темы -->
         <div id="screen-topics" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-factions">← Назад</button>
@@ -90,9 +84,8 @@
             <div id="topics-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 5: Вход и Сброс пароля -->
         <div id="screen-login" class="screen hidden">
-            <h2 style="text-align: center; margin-bottom: 25px;">Вход на forum</h2>
+            <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
             <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
                 <input type="email" id="login-email" placeholder="Электронная почта" style="width: 100%; margin: 0;">
                 <input type="password" id="login-password" placeholder="Пароль" style="width: 100%; margin: 0;">
@@ -103,19 +96,17 @@
                 </span>
             </div>
 
-            <!-- Форма восстановления (Изначально скрыта) -->
-            <div id="reset-password-block" class="form-group hidden" style="max-width: 380px; margin: 20px auto 0; padding: 15px; background: #1e2530; border-radius: 8px; border: 1px solid rgba(59,130,246,0.3);">
+            <div id="reset-password-block" class="form-group hidden" style="max-width: 380px; margin: 20px auto 0; padding: 15px; background: #1e2530; border-radius: 8px; border: 1px solid rgba(59,130,246,0.4); box-shadow: 0 0 15px rgba(59,130,246,0.15);">
                 <h3 style="font-size: 16px; margin-bottom: 10px; text-align: center;">Восстановление доступа</h3>
                 <p style="font-size: 13px; color: #a0aab8; margin-bottom: 10px; text-align: center;">На вашу почту придет официальная ссылка для изменения пароля.</p>
                 <input type="email" id="reset-email" placeholder="Введите ваш Email" style="width: 100%; margin-bottom: 10px;">
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn-primary" onclick="sendPasswordReset()" style="width: 50%; background: #10b981;">Отправить</button>
+                    <button class="btn-primary" onclick="sendPasswordReset()" style="width: 50%; background: #10b981; box-shadow: 0 4px 10px rgba(16,185,129,0.2);">Отправить</button>
                     <button class="btn-secondary" onclick="toggleResetForm(false)" style="width: 50%;">Отмена</button>
                 </div>
             </div>
         </div>
 
-        <!-- ЭКРАН 6: Настройки профиля -->
         <div id="screen-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="profile-banner-preview">
                 <div class="profile-preview-avatar-container">
@@ -141,13 +132,12 @@
                 </div>
                 
                 <div class="profile-editor-actions">
-                    <button class="btn-primary btn-save" onclick="saveProfileChanges()">💾 Сохранить изменения</button>
-                    <button class="btn-secondary" onclick="showScreen('screen-forum')">Отмена</button>
+                    <button class="btn-primary" onclick="saveProfileChanges()" style="width: 100%; margin-bottom: 10px;">💾 Сохранить изменения</button>
+                    <button class="btn-secondary" onclick="showScreen('screen-forum')" style="width: 100%;">Отмена</button>
                 </div>
             </div>
         </div>
 
-        <!-- ЭКРАН 7: Админка -->
         <div id="screen-admin" class="screen hidden">
             <h2>Управление пользователями (Выдача ролей)</h2>
             <div id="admin-users-list" class="admin-list-container"></div>
@@ -158,4 +148,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
