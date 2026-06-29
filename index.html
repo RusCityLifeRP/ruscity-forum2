@@ -11,6 +11,7 @@
 </head>
 <body>
 
+    <!-- Шапка сайта -->
     <header class="forum-header">
         <div class="header-logo" onclick="showScreen('screen-forum')">
             <span class="logo-main">RusCity</span> <span class="logo-sub">Life RP</span>
@@ -34,19 +35,26 @@
         </div>
     </header>
 
+    <!-- Основной контейнер -->
     <main class="forum-container">
         
+        <!-- ЭКРАН 1: Список серверов и важная информация -->
         <div id="screen-forum" class="screen">
+            <h2 class="page-title">Важная информация</h2>
+            <div id="info-sections-list" class="sections-list" style="margin-bottom: 40px;"></div>
+
             <h2 class="page-title">Игровые серверы RusCity Life RP</h2>
             <div id="servers-list" class="sections-list"></div>
         </div>
 
+        <!-- ЭКРАН 2: Категории сервера -->
         <div id="screen-categories" class="screen hidden">
             <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
             <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
             <div id="categories-list" class="sections-list"></div>
         </div>
 
+        <!-- ЭКРАН 3: Список фракций -->
         <div id="screen-factions" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
@@ -64,13 +72,14 @@
             <div id="factions-list" class="sections-list"></div>
         </div>
 
+        <!-- ЭКРАН 4: Темы -->
         <div id="screen-topics" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <button class="btn-secondary" id="btn-back-to-factions">← Назад к фракциям</button>
+                <button class="btn-secondary" id="btn-back-to-factions">← Назад</button>
                 <button id="btn-show-create-topic" class="btn-primary hidden" onclick="toggleTopicForm()">+ Создать тему</button>
             </div>
 
-            <h2 id="current-faction-title" class="page-title">📌 Название фракции</h2>
+            <h2 id="current-faction-title" class="page-title">📌 Название раздела</h2>
 
             <div id="create-topic-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,75,75,0.2);">
                 <h3>Создание новой темы</h3>
@@ -81,6 +90,7 @@
             <div id="topics-list" class="sections-list"></div>
         </div>
 
+        <!-- ЭКРАН 5: Вход -->
         <div id="screen-login" class="screen hidden">
             <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
             <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
@@ -90,6 +100,7 @@
             </div>
         </div>
 
+        <!-- ЭКРАН 6: Настройки профиля -->
         <div id="screen-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="profile-banner-preview">
                 <div class="profile-preview-avatar-container">
@@ -121,6 +132,7 @@
             </div>
         </div>
 
+        <!-- ЭКРАН 7: Админка -->
         <div id="screen-admin" class="screen hidden">
             <h2>Управление пользователями (Выдача ролей)</h2>
             <div id="admin-users-list" class="admin-list-container"></div>
