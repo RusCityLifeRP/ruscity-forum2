@@ -146,30 +146,29 @@ auth.onAuthStateChanged(user => {
 });
 
 // ==========================================
-// НАСТРОЙКИ ПРОФИЛЯ
+// НАСТРОЙКИ ПРОФИЛЯ (ИСПРАВЛЕНО)
 // ==========================================
 function openProfileSettings() {
     if (!currentUserData) return alert("Вы должны быть авторизованы!");
     showScreen('screen-profile-edit');
     
-    if (document.getElementById('edit-username')) document.getElementById('edit-username').value = currentUserData.username || "";
-    if (document.getElementById('edit-bio')) document.getElementById('edit-bio').value = currentUserData.bio || "";
-    if (document.getElementById('file-avatar-input')) document.getElementById('file-avatar-input').value = "";
-    if (document.getElementById('file-banner-input')) document.getElementById('file-banner-input').value = "";
+    const nickInput = document.getElementById('nickname') || document.getElementById('edit-username');
+    const bioInput = document.getElementById('edit-bio');
+    
+    if (nickInput) nickInput.value = currentUserData.username || "";
+    if (bioInput) bioInput.value = currentUserData.bio || "";
 }
 
 async function saveProfileSettings() {
-    const btnSave = document.getElementById('btnSave') || document.querySelector('button[onclick*="saveProfileSettings"]');
-    const nicknameInput = document.getElementById('edit-username');
+    const nicknameInput = document.getElementById('nickname') || document.getElementById('edit-username') || document.querySelector('input[placeholder*="Ник"]');
+    const btnSave = document.getElementById('btnSave') || document.getElementById('btn-save-profile') || document.querySelector('button[onclick*="saveProfileSettings"]');
     
-    let nickname = "";
-    if (nicknameInput) {
-        nickname = nicknameInput.value.trim();
-    } else {
-        console.error("Критическая ошибка: Инпут с id='edit-username' не найден!");
+    if (!nicknameInput) {
         alert("Ошибка: Поле ввода никнейма не найдено.");
         return;
     }
+
+    const nickname = nicknameInput.value.trim();
 
     if (!nickname || nickname.length <= 3) {
         alert("Никнейм должен быть более 3 символов");
@@ -184,8 +183,8 @@ async function saveProfileSettings() {
     try {
         if (!auth.currentUser) return alert("Ошибка: Вы не авторизованы!");
 
-        let avatarUrl = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
-        let bannerUrl = currentUserData.banner || "";
+        let avatarUrl = (currentUserData && currentUserData.avatar) || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
+        let bannerUrl = (currentUserData && currentUserData.banner) || "";
         const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
         if (avatarFile) {
@@ -211,8 +210,8 @@ async function saveProfileSettings() {
         location.reload(); 
 
     } catch (error) {
-        console.error("Ошибка при сохранении:", error);
-        alert("Произошла ошибка при сохранении профиля: " + error.message);
+        console.error(error);
+        alert("Произошла ошибка при сохранении: " + error.message);
     } finally {
         if (btnSave) {
             btnSave.innerText = "Сохранить изменения";
@@ -222,34 +221,19 @@ async function saveProfileSettings() {
 }
 
 // ==========================================
-// ИСПРАВЛЕННАЯ СИСТЕМА РЕГИСТРАЦИИ И ВХОДА
+// СИСТЕМА РЕГИСТРАЦИИ И ВХОДА (ИСПРАВЛЕНО)
 // ==========================================
 async function registerUser() {
-    // Получаем элементы DOM
-    const uEl = document.getElementById('reg-username');
-    const eEl = document.getElementById('reg-email');
-    const pEl = document.getElementById('reg-password');
-
-    // Логирование для отладки в консоли браузера (поможет поймать ошибки верстки)
-    console.log("Поиск инпутов в HTML:", { 
-        "Наличие reg-username": !!uEl, 
-        "Наличие reg-email": !!eEl, 
-        "Наличие reg-password": !!pEl 
-    });
+    const uEl = document.getElementById('reg-username') || document.getElementById('username');
+    const eEl = document.getElementById('reg-email') || document.getElementById('email') || document.querySelector('input[type="email"]');
+    const pEl = document.getElementById('reg-password') || document.getElementById('password') || document.querySelector('input[type="password"]');
 
     const usernameInput = uEl ? uEl.value.trim() : "";
     const email = eEl ? eEl.value.trim() : "";
     const password = pEl ? pEl.value.trim() : "";
     
-    console.log("Считанные JS значения из полей:", { 
-        usernameInput: usernameInput, 
-        email: email, 
-        passwordдлина: password.length 
-    });
-    
-    // Проверка заполненности
     if (!usernameInput || !email || !password) {
-        return alert("Заполните все поля! Если вы всё ввели, но видите этот алерт — значит ID полей в вашем HTML-файле не совпадают с 'reg-username', 'reg-email' или 'reg-password'. Проверьте код!");
+        return alert("Заполните все поля регистрации!");
     }
     
     if (usernameInput.length < 3) return alert("Формат никнейма должен быть более 3-х символов!");
@@ -274,7 +258,7 @@ async function registerUser() {
         });
         
         alert("Успешно зарегистрировались!"); 
-        showScreen('screen-forum');
+        location.reload();
     } catch(err) {
         alert("Ошибка Firebase: " + err.message);
     }
@@ -288,13 +272,13 @@ function loginUser() {
     auth.signInWithEmailAndPassword(email, password).then(cred => {
         db.ref(`users/${cred.user.uid}/status`).set("online");
         alert("Успешно вошли!"); 
-        showScreen('screen-forum');
+        location.reload();
     }).catch(err => alert(err.message));
 }
 
 function logout() {
     if (auth.currentUser) db.ref(`users/${auth.currentUser.uid}/status`).set("offline");
-    auth.signOut().then(() => showScreen('screen-forum'));
+    auth.signOut().then(() => location.reload());
 }
 
 // ==========================================
@@ -367,11 +351,11 @@ function openPublicProfile(uid) {
             if (user.status === "online") {
                 dot.className = "status-dot status-online";
                 txt.innerText = "В сети";
-                txt.style.color = "var(--success-color)";
+                txt.style.color = "#10b981";
             } else {
                 dot.className = "status-dot status-offline";
                 txt.innerText = "Не в сети";
-                txt.style.color = "var(--danger-color)";
+                txt.style.color = "#ef4444";
             }
         }
     });
@@ -580,11 +564,8 @@ function saveTopicContent() {
     });
 }
 
-// ==========================================
-// СТЕНА ПРОФИЛЯ (ЛАЙКИ И КОММЕНТАРИИ)
-// ==========================================
 function toggleProfileLike() {
-    if (!auth.currentUser) return alert("Войдите на форум!"); if (auth.currentUser.uid === viewTargetUid) return alert("Нельзя лайкать себя!");
+    if (!auth.currentUser) return alert("Войдите на forum!"); if (auth.currentUser.uid === viewTargetUid) return alert("Нельзя лайкать себя!");
     const likeRef = db.ref(`profile_likes/${viewTargetUid}/${auth.currentUser.uid}`);
     const userLikesRef = db.ref(`users/${viewTargetUid}/likes`);
     likeRef.once('value', snapshot => {
@@ -690,16 +671,3 @@ function toggleUserBan(uid, currentBanStatus) { db.ref(`users/${uid}/isBanned`).
 function updateLeaderStatus(uid, field, value) { db.ref(`users/${uid}/${field}`).set(value); }
 function updateUserFaction(uid, factionName) { db.ref(`users/${uid}/leaderFaction`).set(factionName); }
 function updateUserServer(uid, serverId) { db.ref(`users/${uid}/leaderServer`).set(serverId); }
-function showNotification(message) {
-    const container = document.getElementById('notification-container'); if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = 'toast-success';
-    toast.innerHTML = `<span>✅</span> ${message}`;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = 'all 0.4s';
-        setTimeout(() => toast.remove(), 400);
-    }, 3000);
-}
