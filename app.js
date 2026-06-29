@@ -26,6 +26,7 @@ let allUsersCache = {};
 let selectedServerId = ""; 
 let selectedCategoryId = "";
 let selectedFactionId = ""; 
+let selectedTopicId = ""; // Хранит ID открытой темы
 let base64Avatar = ""; 
 let base64Banner = "";
 let isGlobalInfoZone = false; 
@@ -124,7 +125,7 @@ function saveProfileChanges() {
 }
 
 // ==========================================
-// 4. СТРУКТУРА И ДВИЖОК СЕРВЕРОВ
+// 4. СТРУКТУРА СЕРВЕРОВ И ФРАКЦИЙ
 // ==========================================
 function loadServers() {
     const infoDiv = document.getElementById('info-sections-list');
@@ -141,7 +142,7 @@ function loadServers() {
             item.className = 'forum-category-item';
             item.style.borderLeft = "4px solid #ff9f43"; 
             item.onclick = () => openFactionTopics(c.id, c.name, "info");
-            item.innerHTML = `<h3>${c.name}</h3><p>${c.desc}</p>`;
+            item.innerHTML = `<div class="item-text-area"><h3>${c.name}</h3><p>${c.desc}</p></div>`;
             infoDiv.appendChild(item);
         });
     }
@@ -186,7 +187,7 @@ function openServerCategories(id, name, emoji) {
         const item = document.createElement('div');
         item.className = 'forum-category-item';
         item.onclick = () => openCategoryFactions(c.id, c.name);
-        item.innerHTML = `<h3>${c.name}</h3><p>${c.desc}</p>`;
+        item.innerHTML = `<div class="item-text-area"><h3>${c.name}</h3><p>${c.desc}</p></div>`;
         div.appendChild(item);
     });
 }
@@ -204,19 +205,42 @@ function openCategoryFactions(catId, catName) {
         const div = document.getElementById('factions-list');
         if (!div) return; div.innerHTML = "";
         const data = snap.val();
-        if (data) {
-            Object.keys(data).forEach(fId => {
-                const item = document.createElement('div');
-                item.className = 'forum-category-item';
-                item.style.borderLeft = "4px solid #3b82f6";
-                item.onclick = () => openFactionTopics(fId, data[fId].name, "server");
-                item.innerHTML = `<h3>🏢 ${data[fId].name}</h3><p>Просмотр тем</p>`;
-                div.appendChild(item);
-            });
+        
+        if (!data) {
+            div.innerHTML = "<p style='color:#a0aab8; text-align:center; padding: 20px;'>В этом разделе организаций пока нет.</p>";
+            return;
         }
+
+        Object.keys(data).forEach(fId => {
+            const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
+            const item = document.createElement('div');
+            item.className = 'forum-category-item';
+            item.style.borderLeft = "4px solid #3b82f6";
+            item.onclick = () => openFactionTopics(fId, data[fId].name, "server");
+            
+            let deleteBtn = isLeader ? `<button class="btn-delete-item" onclick="deleteFaction('${fId}'); event.stopPropagation();">❌ Удалить</button>` : '';
+            
+            item.innerHTML = `
+                <div class="item-text-area">
+                    <h3>🏢 ${data[fId].name}</h3>
+                    <p>Просмотр тем организации</p>
+                </div>
+                ${deleteBtn}
+            `;
+            div.appendChild(item);
+        });
     });
 }
 
+function deleteFaction(fId) {
+    if (!confirm("Вы уверены, что хотите безвозвратно удалить эту фракцию вместе со всеми темами?")) return;
+    db.ref(`factions/${selectedServerId}/${selectedCategoryId}/${fId}`).remove();
+    db.ref(`topics/${selectedServerId}/${selectedCategoryId}/${fId}`).remove();
+}
+
+// ==========================================
+// 5. ДВИЖОК ТЕМ И ТЕКСТОВОГО РЕДАКТОРА
+// ==========================================
 function openFactionTopics(factionId, factionName, context = "server") {
     selectedFactionId = factionId;
     isGlobalInfoZone = (context === "info");
@@ -236,16 +260,79 @@ function openFactionTopics(factionId, factionName, context = "server") {
     db.ref(dbPath).on('value', snap => {
         div.innerHTML = "";
         const topics = snap.val();
-        if (!topics) { div.innerHTML = "<p style='color:#a0aab8; text-align:center; padding: 20px;'>Тем нет.</p>"; return; }
-        Object.values(topics).forEach(topicName => {
+        if (!topics) { div.innerHTML = "<p style='color:#a0aab8; text-align:center; padding: 20px;'>В этой ветке пока нет ни одной темы...</p>"; return; }
+        
+        Object.keys(topics).forEach(tId => {
+            const topic = topics[tId];
+            const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
             const item = document.createElement('div');
             item.className = 'forum-category-item';
             item.style.borderLeft = "4px solid #ff4b4b";
-            item.onclick = () => alert(`Открываем: ${topicName}`);
-            item.innerHTML = `<h3>📌 ${topicName}</h3>`;
+            
+            // Клик открывает тему для чтения и редактирования
+            item.onclick = () => viewSelectedTopic(tId, topic.title);
+            
+            let deleteBtn = isLeader ? `<button class="btn-delete-item" onclick="deleteTopic('${tId}'); event.stopPropagation();">❌ Удалить</button>` : '';
+            
+            item.innerHTML = `
+                <div class="item-text-area">
+                    <h3>📌 ${topic.title || topic}</h3>
+                </div>
+                ${deleteBtn}
+            `;
             div.appendChild(item);
         });
     });
+}
+
+function viewSelectedTopic(tId, tTitle) {
+    selectedTopicId = tId;
+    showScreen('screen-view-topic');
+    
+    if(document.getElementById('topic-view-title')) document.getElementById('topic-view-title').innerText = tTitle;
+    if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerText = "Загрузка контента публикации...";
+    if(document.getElementById('topic-editor-inputs')) document.getElementById('topic-editor-inputs').classList.add('hidden');
+    
+    const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
+    const adminBlock = document.getElementById('topic-admin-editor-block');
+    if (adminBlock) { if (isLeader) adminBlock.classList.remove('hidden'); else adminBlock.classList.add('hidden'); }
+
+    const basePath = isGlobalInfoZone ? `global_topics/${selectedFactionId}/${tId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}/${tId}`;
+
+    db.ref(basePath).on('value', snap => {
+        const data = snap.val();
+        if (!data) return;
+        
+        const content = data.content || "В данной теме пока нет опубликованного текста. Руководство проекта может добавить его через текстовый редактор ниже.";
+        if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerText = content;
+        if(document.getElementById('textarea-topic-content')) document.getElementById('textarea-topic-content').value = data.content || "";
+    });
+}
+
+function toggleTopicEditor() {
+    document.getElementById('topic-editor-inputs').classList.toggle('hidden');
+}
+
+function saveTopicContent() {
+    if (!currentUserData || currentUserData.role !== "Руководство проекта") return;
+    const text = document.getElementById('textarea-topic-content').value;
+    
+    const basePath = isGlobalInfoZone ? `global_topics/${selectedFactionId}/${selectedTopicId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}/${selectedTopicId}`;
+    
+    db.ref(basePath).update({ content: text }).then(() => {
+        alert("Текст публикации успешно сохранен и опубликован!");
+        document.getElementById('topic-editor-inputs').classList.add('hidden');
+    });
+}
+
+function deleteTopic(tId) {
+    if (!confirm("Вы уверены, что хотите удалить эту тему?")) return;
+    const dbPath = isGlobalInfoZone ? `global_topics/${selectedFactionId}/${tId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}/${tId}`;
+    db.ref(dbPath).remove();
+}
+
+function backFromTopicView() {
+    showScreen('screen-topics');
 }
 
 function toggleFactionForm() { document.getElementById('create-faction-form').classList.toggle('hidden'); }
@@ -267,8 +354,13 @@ function createNewTopic() {
     if (currentUserData.isMuted) { alert("Вы замучены!"); return; }
     const name = document.getElementById('new-topic-name').value.trim();
     if (!name) return;
+    
     const dbPath = isGlobalInfoZone ? `global_topics/${selectedFactionId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`;
-    db.ref(dbPath).push(name).then(() => {
+    
+    db.ref(dbPath).push({
+        title: name,
+        content: ""
+    }).then(() => {
         document.getElementById('new-topic-name').value = "";
         document.getElementById('create-topic-form').classList.add('hidden');
     });
@@ -280,7 +372,7 @@ function toggleHideServer(id, stat) {
 }
 
 // ==========================================
-// 5. ПУБЛИЧНЫЕ ПРОФИЛИ, ЛАЙКИ И КОММЕНТАРИИ
+// 6. ПУБЛИЧНЫЕ ПРОФИЛИ, ЛАЙКИ И КОММЕНТАРИИ
 // ==========================================
 function openPublicProfile(uid) {
     viewedProfileUid = uid;
@@ -337,7 +429,7 @@ function sendProfileComment() {
 }
 
 // ==========================================
-// 6. АДМИНКА, ПОИСК И МОДЕРАЦИЯ
+// 7. АДМИНКА, ПОИСК И МОДЕРАЦИЯ
 // ==========================================
 function openAdminPanel() {
     showScreen('screen-admin');
@@ -408,7 +500,7 @@ function setPunishment(uid, type) {
 }
 
 // ==========================================
-// 7. СБРОСЫ И ВХОД
+// 8. АВТОРИЗАЦИЯ И СБРОСЫ
 // ==========================================
 function loginUser() {
     const email = document.getElementById('login-email').value.trim(); const pass = document.getElementById('login-password').value;
