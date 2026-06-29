@@ -12,7 +12,6 @@ const firebaseConfig = {
     appId: "1:728638066749:web:78b207bc6765e3dc685a54"
 };
 
-// Инициализируем приложение, если оно еще не инициализировано
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -28,7 +27,7 @@ const LEADER_FACTIONS_LIST = [
     "Прокуратура",
     "Следственный комитет",
     "Правительство",
-    "Федеральная служба безопасность",
+    "Федеральная служба безопасности",
     "Армия",
     "МВД",
     "ГИБДД",
@@ -41,7 +40,6 @@ const LEADER_FACTIONS_LIST = [
     "Москва LIVE"
 ];
 
-// Глобальные переменные навигации
 let currentServerId = null;
 let currentCategoryId = null;
 let currentFactionId = null;
@@ -49,7 +47,7 @@ let currentTopicId = null;
 let currentUserData = null;
 
 // ==========================================
-// 2. СЛУШАТЕЛЕ АВТОРИЗАЦИИ
+// 2. СЛУШАТЕЛЬ АВТОРИЗАЦИИ (ИСПРАВЛЕННЫЙ)
 // ==========================================
 auth.onAuthStateChanged(user => {
     const btnAdmin = document.getElementById('btn-admin-panel');
@@ -144,6 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadServers();
 });
 
+// Автогенерация Важной Информации (Правила, Законодательство)
 function loadInfoSections() {
     const container = document.getElementById('info-sections-list');
     if (!container) return;
@@ -151,14 +150,20 @@ function loadInfoSections() {
     db.ref('info_sections').on('value', snapshot => {
         container.innerHTML = '';
         const data = snapshot.val();
+        
         if (!data) {
-            container.innerHTML = '<p class="empty-notify">Важной информации пока нет.</p>';
+            const defaultInfo = {
+                "rules": { name: "📜 Правила сервера" },
+                "laws": { name: "⚖️ Законодательство" }
+            };
+            db.ref('info_sections').set(defaultInfo);
             return;
         }
+        
         for (let id in data) {
             const sec = data[id];
             const div = document.createElement('div');
-            div.className = 'forum-section-card item-clickable';
+            div.className = 'forum-section-card item-clickable'; 
             div.innerHTML = `
                 <div class="section-icon">📌</div>
                 <div class="section-info">
@@ -176,6 +181,7 @@ function loadInfoSections() {
     });
 }
 
+// Автогенерация Серверов (Москва, Сочи, СПБ)
 function loadServers() {
     const container = document.getElementById('servers-list');
     if (!container) return;
@@ -183,14 +189,21 @@ function loadServers() {
     db.ref('servers').on('value', snapshot => {
         container.innerHTML = '';
         const data = snapshot.val();
+        
         if (!data) {
-            db.ref('servers/server1').set({ name: "🏰 Москва" });
+            const defaultServers = {
+                "server1": { name: "🏰 Москва" },
+                "server2": { name: "🌴 Сочи" },
+                "server3": { name: "⚓ Санкт-Петербург" }
+            };
+            db.ref('servers').set(defaultServers);
             return;
         }
+        
         for (let id in data) {
             const server = data[id];
             const div = document.createElement('div');
-            div.className = 'forum-section-card item-clickable';
+            div.className = 'forum-section-card item-clickable'; 
             div.innerHTML = `
                 <div class="section-icon">🌍</div>
                 <div class="section-info">
@@ -472,7 +485,7 @@ function saveTopicContent() {
 }
 
 // ==========================================
-// 5. РЕГИСТРАЦИЯ, ВХОД, КЛИЕНТСКАЯ ЧАСТЬ
+// 5. РЕГИСТРАЦИЯ И ВХОД
 // ==========================================
 function registerUser() {
     const usernameInput = document.getElementById('reg-username').value.trim();
@@ -517,6 +530,12 @@ function loginUser() {
             document.getElementById('login-password').value = '';
         })
         .catch(err => alert("Ошибка авторизации: " + err.message));
+}
+
+function logout() {
+    auth.signOut().then(() => {
+        showScreen('screen-forum');
+    });
 }
 
 function toggleResetForm(show) {
@@ -698,7 +717,7 @@ function loadProfileComments() {
 }
 
 // ==========================================
-// 8. АДМИН-ПАНЕЛЬ УПРАВЛЕНИЯ ПРОЕКТОМ
+// 8. АДМИН-ПАНЕЛЬ
 // ==========================================
 let allUsersCache = {};
 
@@ -754,10 +773,13 @@ function renderAdminUsersList(usersData) {
     }
 }
 
+function openAdminPanel() {
+    if (!currentUserData || currentUserData.role !== "Руководство проекта") return alert("Доступ запрещен!");
+    showScreen('screen-admin');
+    loadAdminUsers();
+}
+
 function loadAdminUsers() {
-    const container = document.getElementById('admin-users-list');
-    if (!container) return;
-    
     db.ref('users').on('value', snapshot => {
         allUsersCache = snapshot.val() || {};
         renderAdminUsersList(allUsersCache);
