@@ -14,7 +14,7 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Базовые системные роли проекта (Добавлены Генеральный прокурор РФ и Заместители министров)
+// Базовые системные роли проекта
 const ROLES = [
     "Пользователь", 
     "Президент",
@@ -42,20 +42,20 @@ const ADMIN_PANEL_ROLES = [
     "Помощник главного куратора"
 ];
 
-// Полный точный список фракций (Иерархия Официального портала гос. структур)
+// ИЕРАРХИЯ СТРУКТУР (Строго в порядке как на форуме RMRP, но с исходными названиями фракций)
 const LEADER_FACTIONS_LIST = [
-    "Правительство РФ",
+    "Правительство",
     "Судебная власть",
-    "Генеральная Прокуратура",
-    "Следственный комитет РФ",
-    "Федеральная служба безопасности",
-    "Министерство внутренних дел",
-    "Министерство обороны",
-    "Федеральная служба охраны",
-    "Федеральная служба исполнения наказаний",
+    "Прокуратура",
+    "Следственный комитет",
+    "ФСБ",
+    "МВД",
+    "Армия",
+    "ФСО",
+    "ФСИН",
     "Росгвардия",
-    "Министерство здравоохранения",
-    "Средства массовой информации"
+    "МЗ",
+    "СМИ"
 ];
 
 let currentUserData = null;
@@ -73,7 +73,7 @@ let isGlobalInfoZone = false;
 let viewedProfileUid = "";
 
 // ==========================================
-// 1.5 УЛУЧШЕННАЯ ПРОВЕРКА ПРАВ МОДЕРАЦИИ И ЛИДЕРСТВА
+// 1.5 ПРОВЕРКА ПРАВ МОДЕРАЦИИ И ЛИДЕРСТВА
 // ==========================================
 function checkModerationRights() {
     if (!currentUserData) return false;
@@ -98,7 +98,7 @@ function checkModerationRights() {
     const serverLower = selectedServerName.toLowerCase().trim();
     const factionLower = selectedFactionName.toLowerCase().trim();
     
-    // Председатель Верховного Суда РФ — управляет судебной властью на всех серверах
+    // Председатель Верховного Суда РФ — управляет судебной властью
     if (userRoleLower === "председатель верховного суда рф" && factionLower.includes("судебная власть")) {
         return true;
     }
@@ -108,21 +108,21 @@ function checkModerationRights() {
         return true;
     }
 
-    // Проверка Министров и Заместителей министров (имеют аналогичные права на свои министерства)
+    // Проверка Министров и Заместителей министров
     if (userRoleLower.includes("министр обороны") || userRoleLower.includes("заместитель министра обороны") || userRoleLower.includes("зам. министра обороны")) {
-        if (factionLower.includes("министерство обороны")) return true;
+        if (factionLower.includes("армия")) return true;
     }
     if (userRoleLower.includes("министр юстиции") || userRoleLower.includes("заместитель министра юстиции") || userRoleLower.includes("зам. министра юстиции")) {
-        if (factionLower.includes("министерство юстиции") || factionLower.includes("генеральная прокуратура")) return true;
+        if (factionLower.includes("прокуратура")) return true;
     }
-    if (userRoleLower.includes("министр внутренних дел") || userRoleLower.includes("заместитель министра внутренних дел") || userRoleLower.includes("зам. министра внутренних дел") || userRoleLower.includes("министр внутрених дел")) {
-        if (factionLower.includes("министерство внутренних дел")) return true;
+    if (userRoleLower.includes("министр внутренних дел") || userRoleLower.includes("заместитель министра внутренних дел") || userRoleLower.includes("зам. министра внутренних дел")) {
+        if (factionLower.includes("мвд")) return true;
     }
     if (userRoleLower.includes("министр здравоохранения") || userRoleLower.includes("заместитель министра здравоохранения") || userRoleLower.includes("зам. министра здравоохранения")) {
-        if (factionLower.includes("министерство здравоохранения")) return true;
+        if (factionLower.includes("мз")) return true;
     }
 
-    // Обычные Лидеры и Заместители фракций на конкретных серверах
+    // Обычные Лидеры и Заместители фракций
     if (userRoleLower.includes(serverLower) && (userRoleLower.includes("лидер") || userRoleLower.includes("зам. лидера")) && userRoleLower.includes(factionLower)) {
         return true;
     }
@@ -361,7 +361,7 @@ function openCategoryFactions(catId, catName) {
         if (!div) return; div.innerHTML = "";
         let data = snap.val();
         
-        // Автогенерация иерархии гос. структур в случае отсутствия данных в БД
+        // Автогенерация в точной последовательности иерархии
         if (!data && selectedCategoryId === "gov") {
             data = {};
             LEADER_FACTIONS_LIST.forEach((fac, index) => {
@@ -375,7 +375,20 @@ function openCategoryFactions(catId, catName) {
             div.innerHTML = "<p style='color:#a0aab8; text-align:center; padding: 20px;'>В этом разделе организаций пока нет.</p>";
             return;
         }
-        Object.keys(data).forEach(fId => {
+
+        // Вывод элементов строго по порядку из LEADER_FACTIONS_LIST
+        let sortedKeys = Object.keys(data);
+        if (selectedCategoryId === "gov") {
+            sortedKeys.sort((a, b) => {
+                let idxA = LEADER_FACTIONS_LIST.indexOf(data[a].name);
+                let idxB = LEADER_FACTIONS_LIST.indexOf(data[b].name);
+                if (idxA === -1) idxA = 999;
+                if (idxB === -1) idxB = 999;
+                return idxA - idxB;
+            });
+        }
+
+        sortedKeys.forEach(fId => {
             const isLeader = currentUserData && (currentUserData.role === "Руководство проекта" || currentUserData.role === "Президент");
             const item = document.createElement('div');
             item.className = 'forum-category-item';
@@ -605,6 +618,19 @@ function deleteProfileComment(cId) {
     });
 }
 
+// Подача сброса пароля (Заглушка)
+function toggleResetForm(show) {
+    const block = document.getElementById('reset-password-block');
+    if(block) { if(show) block.classList.remove('hidden'); else block.classList.add('hidden'); }
+}
+function sendPasswordReset() {
+    const email = document.getElementById('reset-email').value.trim();
+    if(!email) { alert("Введите корректный email!"); return; }
+    auth.sendPasswordResetEmail(email)
+        .then(() => { alert("Ссылка отправлена!"); toggleResetForm(false); })
+        .catch(err => alert("Ошибка: " + err.message));
+}
+
 function sendProfileComment() {
     if (!auth.currentUser) { alert("Войдите в аккаунт!"); return; }
     if (currentUserData && currentUserData.isBanned) return;
@@ -732,7 +758,7 @@ function assignSelectLeaderRole(uid) {
     if (!serverSelect || !typeSelect || !factionSelect) return;
     
     let fullLeaderRole = "";
-    if(typeSelect.value.includes("Министр") || typeSelect.value.includes("заместитель министра") || typeSelect.value.includes("Заместитель министра")) {
+    if(typeSelect.value.includes("Министр") || typeSelect.value.includes("заместитель") || typeSelect.value.includes("Заместитель")) {
         fullLeaderRole = `${typeSelect.value}`;
     } else {
         fullLeaderRole = `${serverSelect.value} ${typeSelect.value} ${factionSelect.value}`;
