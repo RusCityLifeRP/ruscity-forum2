@@ -192,7 +192,7 @@ async function saveProfileSettings() {
             banner: bannerUrl
         });
 
-        alert("Профиль успешно сохранен!");
+       showNotification("Никнейм успешно изменен!");
         showScreen('screen-forum');
     } catch (error) {
         alert("Произошла ошибка при загрузке: " + error.message);
