@@ -159,8 +159,9 @@ async function saveProfileSettings() {
     const avatarFile = document.getElementById('file-avatar-input').files[0];
     const bannerFile = document.getElementById('file-banner-input').files[0];
 
-    if (!newUsername || !newUsername.lenght < 3) {
-        return alert("Никнейм должен быть более 3 символов");
+    if (!nickname || !nickname.lenght <= 3) {
+        alert("Никнейм должен быть более 3 символов");
+        return;
     }
 
     btnSave.innerText = "⏳ Сохранение...";
