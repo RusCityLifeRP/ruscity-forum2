@@ -11,7 +11,6 @@
 </head>
 <body>
 
-    <!-- Шапка сайта -->
     <header class="forum-header">
         <div class="header-logo" onclick="showScreen('screen-forum')">
             <span class="logo-main">RusCity</span> <span class="logo-sub">Life RP</span>
@@ -28,49 +27,43 @@
                 <button onclick="showScreen('screen-login')" class="btn-primary">Войти</button>
             </div>
             <div id="user-menu" class="user-profile-menu hidden" onclick="showScreen('screen-profile')">
-                <img id="header-avatar" src="" alt="Аватар" class="profile-avatar-mini">
+                <img id="header-avatar" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Аватар" class="profile-avatar-mini">
                 <span id="header-username" class="profile-username-text">Загрузка...</span>
                 <button onclick="logout(); event.stopPropagation();" class="btn-logout">Выйти</button>
             </div>
         </div>
     </header>
 
-    <!-- Основной контейнер -->
     <main class="forum-container">
         
-        <!-- ЭКРАН 1: Список серверов -->
         <div id="screen-forum" class="screen">
             <h2 class="page-title">Игровые серверы RusCity Life RP</h2>
             <div id="servers-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 2: Категории сервера -->
         <div id="screen-categories" class="screen hidden">
             <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
             <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
             <div id="categories-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 3: Список организаций/фракций -->
         <div id="screen-factions" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <button class="btn-secondary" id="btn-back-to-categories">← Назад</button>
+                <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
                 <button id="btn-show-create-faction" class="btn-primary hidden" onclick="toggleFactionForm()">+ Создать организацию</button>
             </div>
 
             <h2 id="current-category-title" class="page-title">🏢 Государственные организации</h2>
 
-            <!-- Форма создания новой организации для Руководства -->
             <div id="create-faction-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,75,75,0.2);">
-                <h3>Создание новой фракции / подраздела</h3>
-                <input type="text" id="new-faction-name" placeholder="Например: Прокуратура или ГИБДД">
+                <h3>Создание новой фракции</h3>
+                <input type="text" id="new-faction-name" placeholder="Название фракции">
                 <button class="btn-primary" onclick="createNewFaction()">Добавить организацию</button>
             </div>
 
             <div id="factions-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 4: Темы внутри выбранной организации -->
         <div id="screen-topics" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-factions">← Назад к фракциям</button>
@@ -79,37 +72,35 @@
 
             <h2 id="current-faction-title" class="page-title">📌 Название фракции</h2>
 
-            <!-- Форма создания темы внутри фракции -->
             <div id="create-topic-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,75,75,0.2);">
-                <h3>Создание новой темы в этой организации</h3>
-                <input type="text" id="new-topic-name" placeholder="Например: Заявления на Старший Состав">
+                <h3>Создание новой темы</h3>
+                <input type="text" id="new-topic-name" placeholder="Например: Заявления на СС">
                 <button class="btn-primary" onclick="createNewTopic()">Опубликовать тему</button>
             </div>
 
             <div id="topics-list" class="sections-list"></div>
         </div>
 
-        <!-- Авторизация -->
-        <div id="screen-login" class="screen hidden auth-card">
-            <h2>Вход на форум</h2>
-            <div class="form-group">
-                <input type="email" id="login-email" placeholder="Электронная почта">
-                <input type="password" id="login-password" placeholder="Пароль">
-                <button class="btn-primary" onclick="loginUser()">Войти</button>
+        <div id="screen-login" class="screen hidden">
+            <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
+            <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
+                <input type="email" id="login-email" placeholder="Электронная почта" style="width: 100%; margin: 0;">
+                <input type="password" id="login-password" placeholder="Пароль" style="width: 100%; margin: 0;">
+                <button class="btn-primary" onclick="loginUser()" style="width: 100%; margin-top: 10px;">Войти в аккаунт</button>
             </div>
         </div>
 
-        <!-- Редактор профиля -->
         <div id="screen-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="profile-banner-preview">
                 <div class="profile-preview-avatar-container">
-                    <img id="profile-avatar-preview" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Превью аватара">
+                    <img id="profile-avatar-preview" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Превью">
                 </div>
             </div>
             <h2 style="margin-top: 50px; text-align: center;">Настройки профиля</h2>
             <div class="form-group">
                 <label class="input-label">Ваш никнейм на форуме</label>
                 <input type="text" id="edit-username" placeholder="Введите новый ник">
+                
                 <div class="upload-grid">
                     <div>
                         <label class="input-label">Фото профиля</label>
@@ -122,6 +113,7 @@
                         <input type="file" id="file-banner" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-banner-preview', true)">
                     </div>
                 </div>
+                
                 <div class="profile-editor-actions">
                     <button class="btn-primary btn-save" onclick="saveProfileChanges()">💾 Сохранить изменения</button>
                     <button class="btn-secondary" onclick="showScreen('screen-forum')">Отмена</button>
@@ -129,7 +121,6 @@
             </div>
         </div>
 
-        <!-- Админка -->
         <div id="screen-admin" class="screen hidden">
             <h2>Управление пользователями (Выдача ролей)</h2>
             <div id="admin-users-list" class="admin-list-container"></div>
