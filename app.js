@@ -1,4 +1,4 @@
-// КОНФИГУРАЦИЯ FIREBASE (ВАШИ АКТУАЛЬНЫЕ ДАННЫЕ)
+// КОНФИГУРАЦИЯ FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -26,17 +26,17 @@ const ROLES = [
     "Руководство проекта"
 ];
 
-const ADMIN_ROLES = [
+// Кому доступна общая админ-панель ролей
+const ADMIN_PANEL_ROLES = [
     "Руководство проекта", 
     "Специальный администратор", 
     "Главный администратор", 
-    "Заместитель главного администратора",
-    "Главный администратор форума",
-    "Заместитель главного администратора форума"
+    "Заместитель главного администратора"
 ];
 
 let currentUserData = null;
-let selectedServerId = ""; // Храним выбранный сервер
+let selectedServerId = ""; 
+let selectedCategoryId = "";
 
 // СЛУШАТЕЛЬ АВТОРИЗАЦИИ
 auth.onAuthStateChanged(user => {
@@ -65,11 +65,22 @@ auth.onAuthStateChanged(user => {
                 document.getElementById('header-avatar').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
             }
 
+            // Доступы к общей админке ролей
             if (btnAdmin) {
-                if (ADMIN_ROLES.includes(currentUserData.role)) {
+                if (ADMIN_PANEL_ROLES.includes(currentUserData.role)) {
                     btnAdmin.classList.remove('hidden');
                 } else {
                     btnAdmin.classList.add('hidden');
+                }
+            }
+            
+            // Если мы находимся на экране тем, обновляем видимость кнопки создания
+            const btnCreateTopic = document.getElementById('btn-show-create-topic');
+            if (btnCreateTopic) {
+                if (currentUserData.role === "Руководство проекта") {
+                    btnCreateTopic.classList.remove('hidden');
+                } else {
+                    btnCreateTopic.classList.add('hidden');
                 }
             }
         });
@@ -82,7 +93,7 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ФУНКЦИЯ РЕДАКТИРОВАНИЯ ПРОФИЛЯ
+// РЕДАКТИРОВАНИE ПРОФИЛЯ
 function saveProfileChanges() {
     if (!auth.currentUser) return;
     const newUsername = document.getElementById('edit-username').value.trim();
@@ -102,7 +113,7 @@ function saveProfileChanges() {
     });
 }
 
-// ЗАГРУЗКА ИГРОВЫХ СЕРВЕРОВ КНОПКАМИ
+// ЗАГРУЗКА ИГРОВЫХ СЕРВЕРОВ
 function loadServers() {
     const serversListDiv = document.getElementById('servers-list');
     if (!serversListDiv) return;
@@ -114,8 +125,10 @@ function loadServers() {
 
         Object.keys(servers).forEach(serverId => {
             const server = servers[serverId];
-            const isUserAdmin = currentUserData && ADMIN_ROLES.includes(currentUserData.role);
-            if (server.hidden && !isUserAdmin) return; 
+            const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
+            
+            // Скрытый сервер видит только Руководство проекта
+            if (server.hidden && !isLeader) return; 
 
             let emoji = "🎮";
             if (serverId.includes('moscow') || (server.name && server.name.includes('Москва'))) emoji = "🏰";
@@ -126,8 +139,9 @@ function loadServers() {
             card.className = 'server-card-item';
             if(server.hidden) card.style.opacity = "0.5";
 
+            // Кнопка Скрыть/Показать доступна ТОЛЬКО Руководству проекта
             let hideButtonHtml = '';
-            if (isUserAdmin) {
+            if (isLeader) {
                 hideButtonHtml = `<button class="btn-admin-action" onclick="toggleHideServer('${serverId}', ${server.hidden || false}); event.stopPropagation();">
                     ${server.hidden ? 'Показать' : 'Скрыть'}
                 </button>`;
@@ -145,7 +159,7 @@ function loadServers() {
     });
 }
 
-// ОТКРЫТИЕ КАТЕГОРИЙ СЕРВЕРА (Гос, Крайм, Жалобы...)
+// ОТКРЫТИЕ КАТЕГОРИЙ СЕРВЕРА
 function openServerCategories(serverId, serverName, emoji) {
     selectedServerId = serverId;
     showScreen('screen-categories');
@@ -156,13 +170,12 @@ function openServerCategories(serverId, serverName, emoji) {
     const categoriesListDiv = document.getElementById('categories-list');
     if (!categoriesListDiv) return;
 
-    // Список базовых категорий форума
     const categories = [
         { id: "gov", name: "🏢 Государственные организации", desc: "Официальные структуры и ведомства" },
         { id: "crime", name: "🥷 Криминальные организации", desc: "ОПГ, синдикаты, бандитские группировки" },
-        { id: "players_reports", name: "🚫 Жалобы на игроков", desc: "Нарушения правил сервера со стороны игроков" },
-        { id: "admin_reports", name: "🛠️ Жалобы на администрацию", desc: "Обжалование наказаний и действия администрации" },
-        { id: "leaders_reports", name: "💼 Жалобы на лидеров", desc: "Жалобы на халатность или нарушения от лидеров организаций" }
+        { id: "players_reports", name: "🚫 Жалобы на игроков", desc: "Нарушения правил сервера" },
+        { id: "admin_reports", name: "🛠️ Жалобы на администрацию", desc: "Обжалование наказаний" },
+        { id: "leaders_reports", name: "💼 Жалобы на лидеров", desc: "Жалобы на лидеров организаций" }
     ];
 
     categoriesListDiv.innerHTML = "";
@@ -179,56 +192,101 @@ function openServerCategories(serverId, serverName, emoji) {
     });
 }
 
-// ОТКРЫТИЕ ВНУТРЕННИХ ТЕМ (Фракций)
+// ОТКРЫТИЕ ТЕМ С ДИНАМИЧЕСКИМ СЛУШАТЕЛЕМ БД
 function openCategoryFactions(categoryId, categoryName) {
+    selectedCategoryId = categoryId;
     showScreen('screen-factions');
+    
+    document.getElementById('create-topic-form').classList.add('hidden');
     
     const catTitleEl = document.getElementById('current-category-title');
     if (catTitleEl) catTitleEl.innerText = categoryName;
 
     const backBtn = document.getElementById('btn-back-to-categories');
-    if (backBtn) {
-        backBtn.onclick = () => showScreen('screen-categories');
+    if (backBtn) backBtn.onclick = () => showScreen('screen-categories');
+
+    const btnCreateTopic = document.getElementById('btn-show-create-topic');
+    if (btnCreateTopic) {
+        if (currentUserData && currentUserData.role === "Руководство проекта") {
+            btnCreateTopic.classList.remove('hidden');
+        } else {
+            btnCreateTopic.classList.add('hidden');
+        }
     }
 
     const factionsListDiv = document.getElementById('factions-list');
     if (!factionsListDiv) return;
-    factionsListDiv.innerHTML = "";
 
-    let topics = [];
-
-    // Наполнение контентом подмодулей в зависимости от категории
-    if (categoryId === "gov") {
-        topics = [
-            "Правительство", "Следственный комитет России", "Прокуратура", 
-            "Судебная Власть", "Федеральная Служба Безопасности", 
-            "Федеральная Служба Исполнения Наказаний", "Росгвардия", 
-            "Управление Внутренних Дел (МВД)", "Управление ГИБДД", 
-            "Центр Организации Дорожного Движения (ЦОДД)", "Армия", 
-            "Городская Больница № 3", "Городская Больница № 7"
-        ];
-    } else if (categoryId === "crime") {
-        topics = ["ЧОП", "Ночные волки", "Бакшиш"];
-    } else {
-        topics = ["Раздел правил подачи жалоб", "Архив жалоб", "Жалобы в обработке"];
-    }
-
-    topics.forEach(topic => {
-        const item = document.createElement('div');
-        item.className = 'forum-category-item';
-        item.style.borderLeft = "4px solid #ff4b4b"; // Красный маркер для тем фракций
-        item.onclick = () => alert(`Открытие подфорума фракции: ${topic}`);
+    // Подключаем слушатель реального времени к ветке создаваемых тем
+    db.ref(`topics/${selectedServerId}/${selectedCategoryId}`).on('value', snapshot => {
+        factionsListDiv.innerHTML = "";
+        const customTopics = snapshot.val();
         
-        item.innerHTML = `
-            <h3>📌 ${topic}</h3>
-            <p>Перейти к темам и заявлениям организации</p>
-        `;
-        factionsListDiv.appendChild(item);
+        // По дефолту выводим базовые темы, если база пуста
+        let topicsArray = [];
+        if (customTopics) {
+            topicsArray = Object.values(customTopics);
+        } else {
+            if (categoryId === "gov") {
+                topicsArray = ["Правительство", "Следственный комитет России", "Прокуратура", "ФСБ", "Армия", "МВД"];
+            } else if (categoryId === "crime") {
+                topicsArray = ["ЧОП", "Ночные волки", "Бакшиш"];
+            } else {
+                topicsArray = ["Правила подачи жалоб", "Архив жалоб"];
+            }
+        }
+
+        topicsArray.forEach(topic => {
+            const item = document.createElement('div');
+            item.className = 'forum-category-item';
+            item.style.borderLeft = "4px solid #ff4b4b";
+            item.onclick = () => alert(`Открытие подфорума: ${topic}`);
+            
+            item.innerHTML = `
+                <h3>📌 ${topic}</h3>
+                <p>Перейти к темам и заявлениям организации</p>
+            `;
+            factionsListDiv.appendChild(item);
+        });
     });
 }
 
-// Переключение видимости сервера администратором
+// Показать/скрыть форму добавления темы
+function toggleTopicForm() {
+    const form = document.getElementById('create-topic-form');
+    form.classList.toggle('hidden');
+}
+
+// ДОБАВЛЕНИЕ ТЕМЫ В БД ДЛЯ РУКОВОДСТВА
+function createNewTopic() {
+    if (!currentUserData || currentUserData.role !== "Руководство проекта") {
+        alert("У вас нет прав на создание тем!");
+        return;
+    }
+
+    const input = document.getElementById('new-topic-name');
+    const topicName = input.value.trim();
+
+    if (!topicName) {
+        alert("Введите название темы!");
+        return;
+    }
+
+    // Сохраняем тему в привязке к конкретному серверу и категории
+    db.ref(`topics/${selectedServerId}/${selectedCategoryId}`).push(topicName)
+    .then(() => {
+        alert("Тема успешно добавлена!");
+        input.value = "";
+        document.getElementById('create-topic-form').classList.add('hidden');
+    }).catch(err => alert("Ошибка записи: " + err.message));
+}
+
+// Переключение видимости сервера Руководством
 function toggleHideServer(serverId, currentHiddenStatus) {
+    if (!currentUserData || currentUserData.role !== "Руководство проекта") {
+        alert("Доступно только Руководству проекта!");
+        return;
+    }
     db.ref('servers/' + serverId).update({ hidden: !currentHiddenStatus });
 }
 
