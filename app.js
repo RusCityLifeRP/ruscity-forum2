@@ -1,4 +1,4 @@
-// КОНФИГУРАЦИЯ FIREBASE
+// КОНФИГУРАЦИЯ FIREBASE (ТВОИ АКТУАЛЬНЫЕ ДАННЫЕ)
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -17,26 +17,16 @@ const auth = firebase.auth();
 const db = firebase.database();
 
 const ROLES = [
-    "Пользователь",
-    "Заместитель главного администратора форума",
-    "Главный администратор форума",
-    "Заместитель главного администратора",
-    "Главный администратор",
-    "Специальный администратор",
-    "Руководство проекта"
+    "Пользователь", "Заместитель главного администратора форума", "Главный администратор форума",
+    "Заместитель главного администратора", "Главный администратор", "Специальный администратор", "Руководство проекта"
 ];
-
-// Кому доступна общая админ-панель ролей
-const ADMIN_PANEL_ROLES = [
-    "Руководство проекта", 
-    "Специальный администратор", 
-    "Главный администратор", 
-    "Заместитель главного администратора"
-];
+const ADMIN_PANEL_ROLES = ["Руководство проекта", "Специальный администратор", "Главный администратор", "Заместитель главного администратора"];
 
 let currentUserData = null;
 let selectedServerId = ""; 
 let selectedCategoryId = "";
+let base64Avatar = ""; // Строковые кеши для загруженных картинок
+let base64Banner = "";
 
 // СЛУШАТЕЛЬ АВТОРИЗАЦИИ
 auth.onAuthStateChanged(user => {
@@ -52,20 +42,25 @@ auth.onAuthStateChanged(user => {
             currentUserData.uid = user.uid;
 
             if(document.getElementById('edit-username')) document.getElementById('edit-username').value = currentUserData.username || "";
-            if(document.getElementById('edit-avatar')) document.getElementById('edit-avatar').value = currentUserData.avatar || "";
+            
+            // Ставим текущие аватар и баннер в превью редактора профиля
+            if(document.getElementById('profile-avatar-preview')) {
+                document.getElementById('profile-avatar-preview').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
+            }
+            if(document.getElementById('profile-banner-preview')) {
+                const bannerUrl = currentUserData.banner || "";
+                document.getElementById('profile-banner-preview').style.backgroundImage = bannerUrl ? `url('${bannerUrl}')` : "none";
+            }
 
             if (authButtons) authButtons.classList.add('hidden');
             if (userMenu) userMenu.classList.remove('hidden');
             if (btnProfile) btnProfile.classList.remove('hidden');
             
-            if (document.getElementById('header-username')) {
-                document.getElementById('header-username').innerText = currentUserData.username || "Пользователь";
-            }
+            if (document.getElementById('header-username')) document.getElementById('header-username').innerText = currentUserData.username || "Пользователь";
             if (document.getElementById('header-avatar')) {
                 document.getElementById('header-avatar').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
             }
 
-            // Доступы к общей админке ролей
             if (btnAdmin) {
                 if (ADMIN_PANEL_ROLES.includes(currentUserData.role)) {
                     btnAdmin.classList.remove('hidden');
@@ -74,14 +69,10 @@ auth.onAuthStateChanged(user => {
                 }
             }
             
-            // Если мы находимся на экране тем, обновляем видимость кнопки создания
             const btnCreateTopic = document.getElementById('btn-show-create-topic');
             if (btnCreateTopic) {
-                if (currentUserData.role === "Руководство проекта") {
-                    btnCreateTopic.classList.remove('hidden');
-                } else {
-                    btnCreateTopic.classList.add('hidden');
-                }
+                if (currentUserData.role === "Руководство проекта") btnCreateTopic.classList.remove('hidden');
+                else btnCreateTopic.classList.add('hidden');
             }
         });
     } else {
@@ -93,24 +84,55 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// РЕДАКТИРОВАНИE ПРОФИЛЯ
+// ФУНКЦИЯ ДЛЯ ПРЕВЬЮ И ПЕРЕВОДА КАРТИНКИ ИЗ ПРОВОДНИКА В BASE64
+function previewImage(inputElement, previewId, isBanner = false) {
+    const file = inputElement.files[0];
+    if (!file) return;
+
+    // Валидация размера файла (чтобы строка в базе не была бесконечной, до 2МБ)
+    if (file.size > 2 * 1024 * 1024) {
+        alert("Файл слишком большой! Выберите картинку до 2 МБ.");
+        inputElement.value = "";
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Result = e.target.result;
+        if (isBanner) {
+            base64Banner = base64Result;
+            document.getElementById(previewId).style.backgroundImage = `url('${base64Result}')`;
+        } else {
+            base64Avatar = base64Result;
+            document.getElementById(previewId).src = base64Result;
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// СОХРАНЕНИЕ ПРОФИЛЯ С КАРТИНКАМИ ИЗ ПРОВОДНИКА
 function saveProfileChanges() {
     if (!auth.currentUser) return;
     const newUsername = document.getElementById('edit-username').value.trim();
-    const newAvatar = document.getElementById('edit-avatar').value.trim();
 
     if (!newUsername) {
         alert("Никнейм не может быть пустым!");
         return;
     }
 
-    db.ref('users/' + auth.currentUser.uid).update({
-        username: newUsername,
-        avatar: newAvatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png"
-    }).then(() => {
-        alert("Профиль успешно обновлен!");
+    const updateData = { username: newUsername };
+    
+    // Если пользователь выбрал новые файлы, добавляем их в запрос
+    if (base64Avatar) updateData.avatar = base64Avatar;
+    if (base64Banner) updateData.banner = base64Banner;
+
+    db.ref('users/' + auth.currentUser.uid).update(updateData)
+    .then(() => {
+        alert("Ваш профиль и оформление успешно обновлены!");
+        base64Avatar = "";
+        base64Banner = "";
         showScreen('screen-forum');
-    });
+    }).catch(err => alert("Ошибка обновления: " + err.message));
 }
 
 // ЗАГРУЗКА ИГРОВЫХ СЕРВЕРОВ
@@ -126,8 +148,6 @@ function loadServers() {
         Object.keys(servers).forEach(serverId => {
             const server = servers[serverId];
             const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
-            
-            // Скрытый сервер видит только Руководство проекта
             if (server.hidden && !isLeader) return; 
 
             let emoji = "🎮";
@@ -139,7 +159,6 @@ function loadServers() {
             card.className = 'server-card-item';
             if(server.hidden) card.style.opacity = "0.5";
 
-            // Кнопка Скрыть/Показать доступна ТОЛЬКО Руководству проекта
             let hideButtonHtml = '';
             if (isLeader) {
                 hideButtonHtml = `<button class="btn-admin-action" onclick="toggleHideServer('${serverId}', ${server.hidden || false}); event.stopPropagation();">
@@ -159,11 +178,9 @@ function loadServers() {
     });
 }
 
-// ОТКРЫТИЕ КАТЕГОРИЙ СЕРВЕРА
 function openServerCategories(serverId, serverName, emoji) {
     selectedServerId = serverId;
     showScreen('screen-categories');
-    
     const titleEl = document.getElementById('current-server-title');
     if (titleEl) titleEl.innerText = `${emoji} ${serverName}`;
 
@@ -183,20 +200,14 @@ function openServerCategories(serverId, serverName, emoji) {
         const item = document.createElement('div');
         item.className = 'forum-category-item';
         item.onclick = () => openCategoryFactions(cat.id, cat.name);
-        
-        item.innerHTML = `
-            <h3>${cat.name}</h3>
-            <p>${cat.desc}</p>
-        `;
+        item.innerHTML = `<h3>${cat.name}</h3><p>${cat.desc}</p>`;
         categoriesListDiv.appendChild(item);
     });
 }
 
-// ОТКРЫТИЕ ТЕМ С ДИНАМИЧЕСКИМ СЛУШАТЕЛЕМ БД
 function openCategoryFactions(categoryId, categoryName) {
     selectedCategoryId = categoryId;
     showScreen('screen-factions');
-    
     document.getElementById('create-topic-form').classList.add('hidden');
     
     const catTitleEl = document.getElementById('current-category-title');
@@ -207,33 +218,24 @@ function openCategoryFactions(categoryId, categoryName) {
 
     const btnCreateTopic = document.getElementById('btn-show-create-topic');
     if (btnCreateTopic) {
-        if (currentUserData && currentUserData.role === "Руководство проекта") {
-            btnCreateTopic.classList.remove('hidden');
-        } else {
-            btnCreateTopic.classList.add('hidden');
-        }
+        if (currentUserData && currentUserData.role === "Руководство проекта") btnCreateTopic.classList.remove('hidden');
+        else btnCreateTopic.classList.add('hidden');
     }
 
     const factionsListDiv = document.getElementById('factions-list');
     if (!factionsListDiv) return;
 
-    // Подключаем слушатель реального времени к ветке создаваемых тем
     db.ref(`topics/${selectedServerId}/${selectedCategoryId}`).on('value', snapshot => {
         factionsListDiv.innerHTML = "";
         const customTopics = snapshot.val();
         
-        // По дефолту выводим базовые темы, если база пуста
         let topicsArray = [];
         if (customTopics) {
             topicsArray = Object.values(customTopics);
         } else {
-            if (categoryId === "gov") {
-                topicsArray = ["Правительство", "Следственный комитет России", "Прокуратура", "ФСБ", "Армия", "МВД"];
-            } else if (categoryId === "crime") {
-                topicsArray = ["ЧОП", "Ночные волки", "Бакшиш"];
-            } else {
-                topicsArray = ["Правила подачи жалоб", "Архив жалоб"];
-            }
+            if (categoryId === "gov") topicsArray = ["Правительство", "Следственный комитет России", "Прокуратура", "ФСБ", "Армия", "МВД"];
+            else if (categoryId === "crime") topicsArray = ["ЧОП", "Ночные волки", "Бакшиш"];
+            else topicsArray = ["Правила подачи жалоб", "Архив жалоб"];
         }
 
         topicsArray.forEach(topic => {
@@ -241,84 +243,45 @@ function openCategoryFactions(categoryId, categoryName) {
             item.className = 'forum-category-item';
             item.style.borderLeft = "4px solid #ff4b4b";
             item.onclick = () => alert(`Открытие подфорума: ${topic}`);
-            
-            item.innerHTML = `
-                <h3>📌 ${topic}</h3>
-                <p>Перейти к темам и заявлениям организации</p>
-            `;
+            item.innerHTML = `<h3>📌 ${topic}</h3><p>Перейти к темам организации</p>`;
             factionsListDiv.appendChild(item);
         });
     });
 }
 
-// Показать/скрыть форму добавления темы
-function toggleTopicForm() {
-    const form = document.getElementById('create-topic-form');
-    form.classList.toggle('hidden');
-}
+function toggleTopicForm() { document.getElementById('create-topic-form').classList.toggle('hidden'); }
 
-// ДОБАВЛЕНИЕ ТЕМЫ В БД ДЛЯ РУКОВОДСТВА
 function createNewTopic() {
-    if (!currentUserData || currentUserData.role !== "Руководство проекта") {
-        alert("У вас нет прав на создание тем!");
-        return;
-    }
-
+    if (!currentUserData || currentUserData.role !== "Руководство проекта") return;
     const input = document.getElementById('new-topic-name');
     const topicName = input.value.trim();
+    if (!topicName) return;
 
-    if (!topicName) {
-        alert("Введите название темы!");
-        return;
-    }
-
-    // Сохраняем тему в привязке к конкретному серверу и категории
-    db.ref(`topics/${selectedServerId}/${selectedCategoryId}`).push(topicName)
-    .then(() => {
-        alert("Тема успешно добавлена!");
+    db.ref(`topics/${selectedServerId}/${selectedCategoryId}`).push(topicName).then(() => {
         input.value = "";
         document.getElementById('create-topic-form').classList.add('hidden');
-    }).catch(err => alert("Ошибка записи: " + err.message));
+    });
 }
 
-// Переключение видимости сервера Руководством
 function toggleHideServer(serverId, currentHiddenStatus) {
-    if (!currentUserData || currentUserData.role !== "Руководство проекта") {
-        alert("Доступно только Руководству проекта!");
-        return;
-    }
+    if (!currentUserData || currentUserData.role !== "Руководство проекта") return;
     db.ref('servers/' + serverId).update({ hidden: !currentHiddenStatus });
 }
 
-// АДМИН-ПАНЕЛЬ
 function openAdminPanel() {
     showScreen('screen-admin');
     const list = document.getElementById('admin-users-list');
     if (!list) return;
-    list.innerHTML = '<p>Загрузка списка пользователей...</p>';
-
     db.ref('users').once('value', snapshot => {
         list.innerHTML = '';
         const users = snapshot.val();
         if (!users) return;
-
         Object.keys(users).forEach(uid => {
             const user = users[uid];
             const div = document.createElement('div');
             div.className = 'admin-user-item';
-            
-            let options = ROLES.map(role => 
-                `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`
-            ).join('');
-
-            div.innerHTML = `
-                <div><strong>${user.username || 'Без имени'}</strong> (Роль: ${user.role || 'Пользователь'})</div>
-                <div>
-                    <select onchange="updateUserRole('${uid}', this.value)">
-                        ${options}
-                    </select>
-                </div>
-            `;
+            let options = ROLES.map(role => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`).join('');
+            div.innerHTML = `<div><strong>${user.username || 'Без имени'}</strong></div><div><select onchange="updateUserRole('${uid}', this.value)">${options}</select></div>`;
             list.appendChild(div);
         });
     });
@@ -338,15 +301,9 @@ function showScreen(screenId) {
 function loginUser() {
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-password').value;
-    auth.signInWithEmailAndPassword(email, pass)
-        .then(() => { showScreen('screen-forum'); })
-        .catch(err => alert("Ошибка: " + err.message));
+    auth.signInWithEmailAndPassword(email, pass).then(() => { showScreen('screen-forum'); });
 }
 
-function logout() {
-    auth.signOut().then(() => { location.reload(); });
-}
+function logout() { auth.signOut().then(() => { location.reload(); }); }
 
-document.addEventListener("DOMContentLoaded", () => {
-    loadServers();
-});
+document.addEventListener("DOMContentLoaded", () => { loadServers(); });
