@@ -281,18 +281,33 @@ function loginUser() {
 function logout() { auth.signOut().then(() => location.reload()); }
 
 auth.onAuthStateChanged(user => {
+    const btnAdmin = document.getElementById('btn-admin-panel'); // Получаем кнопку
+    
     if (user) {
         db.ref('users/' + user.uid).on('value', snapshot => {
             currentUserData = snapshot.val();
-            if(!currentUserData) return;
+            if (!currentUserData) return;
             currentUserData.uid = user.uid;
+
+            // ... (твой код обновления интерфейса, который уже есть)
             document.getElementById('auth-buttons').classList.add('hidden');
             document.getElementById('user-menu').classList.remove('hidden');
             document.getElementById('header-username').innerText = currentUserData.username;
             document.getElementById('header-avatar').src = currentUserData.avatar;
+
+            // НОВАЯ ЛОГИКА: Показ кнопки админа
+            if (currentUserData.role === 'Руководство проекта') {
+                if (btnAdmin) btnAdmin.classList.remove('hidden');
+            } else {
+                if (btnAdmin) btnAdmin.classList.add('hidden');
+            }
         });
+    } else {
+        // Если пользователь не залогинен, прячем кнопку
+        if (btnAdmin) btnAdmin.classList.add('hidden');
     }
 });
+
 
 function viewMyProfile() { openProfile(currentUserData.uid); }
 
