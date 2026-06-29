@@ -110,7 +110,7 @@ function saveProfileChanges() {
     });
 }
 
-// ЗАГРУЗКА ГЛАВНОЙ СТРАНИЦЫ (СЕРВЕРЫ + ГЛОБАЛЬНЫЕ ВКЛАДКИ)
+// ЗАГРУЗКА ГЛАВНОЙ СТРАНИЦЫ
 function loadServers() {
     const infoDiv = document.getElementById('info-sections-list');
     const serversDiv = document.getElementById('servers-list');
@@ -176,7 +176,6 @@ function openServerCategories(id, name, emoji) {
     });
 }
 
-// СПИСОК ОРГАНИЗАЦИЙ С ЗАЩИТОЙ ОТ ДУБЛЕЙ
 function openCategoryFactions(catId, catName) {
     selectedCategoryId = catId;
     isGlobalInfoZone = false;
@@ -188,31 +187,6 @@ function openCategoryFactions(catId, catName) {
     updateAdminButtonsVisibility();
     const ref = db.ref(`factions/${selectedServerId}/${selectedCategoryId}`);
     
-    ref.once('value', snap => {
-        if (!snap.exists() && catId === "gov") {
-            const defaultGovList = {
-                "fact_1": { name: "Правительство", icon: "🏛️" },
-                "fact_2": { name: "Прокуратура", icon: "⚖️" },
-                "fact_3": { name: "Следственный комитет", icon: "🔍" },
-                "fact_4": { name: "Судебная власть", icon: "🔨" },
-                "fact_5": { name: "Федеральная служба охраны", icon: "🛡️" },
-                "fact_6": { name: "Росгвардия", icon: "💂" },
-                "fact_7": { name: "Армия", icon: "🪖" },
-                "fact_8": { name: "Центр организации дорожного движение", icon: "🟢" },
-                "fact_9": { name: "МВД", icon: "🚓" },
-                "fact_10": { name: "ГИБДД", icon: "🚨" },
-                "fact_11": { name: "Центральная городская больница 7", icon: "🏥" },
-                "fact_12": { name: "Центральная городская больница 3", icon: "🏥" },
-                "fact_13": { name: "Федеральная служба исполнения наказаний", icon: "⛓️" },
-                "fact_14": { name: "Москва LIVE", icon: "📻" },
-                "fact_15": { name: "Федеральная служба безопасности", icon: "🦅" }
-            };
-            ref.set(defaultGovList);
-        } else if (!snap.exists() && catId === "crime") {
-            ref.set({ "ops": { name: "Базовая ОПГ", icon: "🥷" } });
-        }
-    });
-
     ref.on('value', snap => {
         const div = document.getElementById('factions-list');
         if (!div) return;
@@ -232,7 +206,6 @@ function openCategoryFactions(catId, catName) {
     });
 }
 
-// ОТКРЫТИЕ ТЕМ (РАБОТАЕТ И ДЛЯ СЕРВЕРОВ, И ДЛЯ ПРАВИЛ/ЗАКОНОВ)
 function openFactionTopics(factionId, factionName, context = "server") {
     selectedFactionId = factionId;
     isGlobalInfoZone = (context === "info");
@@ -333,17 +306,12 @@ function updateUserRole(uid, r) { db.ref('users/' + uid).update({ role: r }); }
 function loginUser() {
     const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-password').value;
-    
-    if(!email || !pass) {
-        alert("Пожалуйста, заполните все поля!");
-        return;
-    }
+    if(!email || !pass) { alert("Пожалуйста, заполните все поля!"); return; }
     auth.signInWithEmailAndPassword(email, pass)
         .then(() => { showScreen('screen-forum'); })
         .catch(err => { alert("Ошибка авторизации: " + err.message); });
 }
 
-// СБРОС ПАРОЛЯ И КИК С СЕССИИ
 function toggleResetForm(show) {
     const block = document.getElementById('reset-password-block');
     if (!block) return;
@@ -353,35 +321,21 @@ function toggleResetForm(show) {
 
 function sendPasswordReset() {
     const email = document.getElementById('reset-email').value.trim();
-    if (!email) {
-        alert("Пожалуйста, введите Email для восстановления!");
-        return;
-    }
+    if (!email) { alert("Пожалуйста, введите Email для восстановления!"); return; }
 
     auth.sendPasswordResetEmail(email)
         .then(() => {
             alert(`Инструкция успешно отправлена на почту: ${email}\nПосле изменения пароля зайдите в аккаунт заново.`);
             document.getElementById('reset-email').value = "";
             toggleResetForm(false);
-
-            if (auth.currentUser) {
-                auth.signOut().then(() => { location.reload(); });
-            } else {
-                showScreen('screen-login');
-            }
+            if (auth.currentUser) { auth.signOut().then(() => { location.reload(); }); } 
+            else { showScreen('screen-login'); }
         })
         .catch(err => {
-            if (err.code === "auth/user-not-found") {
-                alert("Пользователь с такой электронной почтой не найден!");
-            } else if (err.code === "auth/invalid-email") {
-                alert("Некорректный формат email адреса!");
-            } else {
-                alert("Ошибка восстановления: " + err.message);
-            }
+            if (err.code === "auth/user-not-found") alert("Пользователь не найден!");
+            else alert("Ошибка: " + err.message);
         });
 }
 
 function logout() { auth.signOut().then(() => { location.reload(); }); }
-
 document.addEventListener("DOMContentLoaded", () => { loadServers(); });
-
