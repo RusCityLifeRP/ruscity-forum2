@@ -618,3 +618,19 @@ function toggleUserBan(uid, currentBanStatus) { db.ref(`users/${uid}/isBanned`).
 function updateLeaderStatus(uid, field, value) { db.ref(`users/${uid}/${field}`).set(value); }
 function updateUserFaction(uid, factionName) { db.ref(`users/${uid}/leaderFaction`).set(factionName); }
 function updateUserServer(uid, serverId) { db.ref(`users/${uid}/leaderServer`).set(serverId); }
+function showNotification(message) {
+    const container = document.getElementById('notification-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast-success';
+    toast.innerHTML = `<span>✅</span> ${message}`;
+    
+    container.appendChild(toast);
+
+    // Удаляем уведомление через 3 секунды
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = 'all 0.4s';
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
+}
