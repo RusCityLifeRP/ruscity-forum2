@@ -167,7 +167,6 @@ async function saveProfileSettings() {
     // --- ОСТАЛЬНОЙ ВАШ КОД НИЖЕ ---
     // (Здесь должен идти ваш старый код, который отправляет данные в базу или сохраняет их)
     console.log("Никнейм прошел проверку:", nickname);
-}
 
     btnSave.innerText = "⏳ Сохранение...";
     btnSave.disabled = true;
