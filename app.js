@@ -160,7 +160,7 @@ async function saveProfileSettings() {
     const bannerFile = document.getElementById('file-banner-input').files[0];
 
     if (!newUsername || !newUsername.includes("_")) {
-        return alert("Никнейм обязателен и должен содержать символ '_' (Например: Nick_Name)!");
+        return alert("Никнейм обязателен к вводу при регистрации(Пример:Future)");
     }
 
     btnSave.innerText = "⏳ Сохранение...";
