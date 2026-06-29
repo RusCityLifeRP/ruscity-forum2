@@ -88,7 +88,7 @@
                 <div class="forum-section" onclick="openSection('fsb')"><h3>🛡️ Федеральная Служба Безопасности</h3><p>Подразделы</p></div>
                 <div class="forum-section" onclick="openSection('fsin')"><h3>⛓️ Федеральная Служба Исполнения Наказаний</h3><p>Подразделы</p></div>
                 <div class="forum-section" onclick="openSection('rosgvard')"><h3>💂 Росгвардия</h3><p>Подразделы</p></div>
-                <div class="forum-section" onclick="openSection('mvd')"><h3>🚔 Министерство Внутренних Дел (МВД)</h3><p>Подразделы</p></div>
+                <div class="forum-section" onclick="openSection('mvd')"><h3>🚔 Управление Внутренних Дел (МВД)</h3><p>Подразделы</p></div>
                 <div class="forum-section" onclick="openSection('gibdd')"><h3>🚨 Управление ГИБДД (Дорожная полиция)</h3><p>Подразделы</p></div>
                 <div class="forum-section" onclick="openSection('codd')"><h3>🟢 Центр Организации Дорожного Движения (ЦОДД)</h3><p>Подразделы</p></div>
                 <div class="forum-section" onclick="openSection('army')"><h3>🎖️ Армия</h3><p>Подразделы</p></div>
@@ -111,7 +111,7 @@
         <div id="screen-section" class="screen hidden animate-fade">
             <button class="btn-back" onclick="goBackFromSection()">⬅ Назад</button>
             <div class="section-header-block">
-                <h2 id="section-title">Раздел</h2>
+                <h2 id="section-title">Раздел тем</h2>
                 <button id="btn-create-topic" class="btn-primary hidden" onclick="showTopicForm()">📝 Создать тему</button>
             </div>
 
@@ -128,9 +128,9 @@
         <div id="screen-topic-view" class="screen hidden animate-fade">
             <button class="btn-back" onclick="openSection(currentSectionId)">⬅ К списку тем</button>
             <div class="topic-main-post">
-                <h2 id="view-topic-title">Заголовок темы</h2>
+                <h2 id="view-topic-title">Заголовок</h2>
                 <div class="topic-meta">Автор: <span id="view-topic-author">...</span></div>
-                <div id="view-topic-text" class="topic-body-text">Текст...</div>
+                <div id="view-topic-text" class="topic-body-text">Текст темы...</div>
             </div>
 
             <h3 class="replies-heading">Обсуждение:</h3>
@@ -170,8 +170,8 @@
                     <label>Баннер профиля (из проводника):</label>
                     <input type="file" id="file-banner" accept="image/*" class="file-input-styled">
                 </div>
-                <div class="form-group" id="admin-tag-selector-block">
-                    <label>Тег должности (Для Администрации):</label>
+                <div class="form-group">
+                    <label>Тег должности:</label>
                     <select id="edit-role-tag" class="select-styled">
                         <option value="User">Пользователь</option>
                         <option value="Руководство проекта">Руководство проекта</option>
