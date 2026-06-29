@@ -40,7 +40,7 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* КРУТОЕ СВЕЧЕНИЕ НАЗВАНИЯ (ЛОГОТИПА) */
+/* СВЕЧЕНИЕ ЛОГОТИПА */
 .header-logo {
     cursor: pointer;
     font-size: 24px;
@@ -115,7 +115,7 @@ body {
     padding-left: 12px;
 }
 
-/* СПИСКИ И КАРТОЧКИ С СУПЕР-ЭФФЕКТАМИ */
+/* КАРТОЧКИ И ЭЛЕМЕНТЫ СПИСКОВ */
 .sections-list {
     display: flex;
     flex-direction: column;
@@ -127,28 +127,24 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 18px 24px;
     border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
     overflow: hidden;
 }
 
-.forum-category-item::before {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
-    transition: 0.5s;
-}
-
-.forum-category-item:hover::before { left: 100%; }
-
 .forum-category-item:hover {
     transform: translateX(6px);
     background: #1c232e;
     border-color: rgba(59, 130, 246, 0.4);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(59, 130, 246, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.item-text-area {
+    flex-grow: 1;
 }
 
 .forum-category-item h3 { font-size: 16px; color: #ffffff; margin-bottom: 4px; }
@@ -168,7 +164,6 @@ body {
 .server-clickable-area { flex-grow: 1; cursor: pointer; }
 .server-card-item:hover {
     border-color: rgba(16, 185, 129, 0.4);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     background: #1c232e;
 }
 
@@ -182,12 +177,10 @@ body {
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
 }
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
     filter: brightness(1.1);
 }
 
@@ -199,10 +192,27 @@ body {
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
-    transition: all 0.2s ease;
 }
 
 .btn-secondary:hover { background: #2d3645; color: #ffffff; }
+
+.btn-delete-item {
+    background: rgba(255, 75, 75, 0.1);
+    color: #ff4b4b;
+    border: 1px solid rgba(255, 75, 75, 0.3);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete-item:hover {
+    background: #ff4b4b;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255,75,75,0.4);
+}
 
 .btn-logout {
     background: rgba(255, 75, 75, 0.1);
@@ -213,16 +223,11 @@ body {
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
-    transition: all 0.2s ease;
 }
 
-.btn-logout:hover {
-    background: #ff4b4b;
-    color: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 75, 75, 0.4);
-}
+.btn-logout:hover { background: #ff4b4b; color: #ffffff; }
 
-/* ИНПУТЫ С ПОДСТВЕТКОЙ */
+/* ИНПУТЫ */
 input[type="text"], input[type="email"], input[type="password"] {
     background: #12171f;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -231,12 +236,10 @@ input[type="text"], input[type="email"], input[type="password"] {
     border-radius: 6px;
     font-size: 14px;
     outline: none;
-    transition: all 0.3s ease;
 }
 
 input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
     border-color: #3b82f6;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
     background: #161c24;
 }
 
@@ -249,10 +252,7 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     border-radius: 30px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     cursor: pointer;
-    transition: all 0.2s ease;
 }
-
-.user-profile-menu:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.1); }
 
 .profile-avatar-mini {
     width: 32px;
@@ -260,10 +260,30 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #3b82f6;
-    box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
 }
 
 .profile-username-text { font-weight: 600; font-size: 14px; color: #e2e8f0; }
+
+/* СТРАНИЦА ПРОСМОТРА ТЕМЫ */
+.topic-view-container {
+    background: #161c24;
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+.topic-content-display {
+    color: #cbd5e1;
+    font-size: 15px;
+    line-height: 1.7;
+    white-space: pre-wrap; /* Сохраняет абзацы и переносы строк */
+    word-break: break-word;
+    background: #0f1319;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.02);
+}
 
 /* ПРОФИЛИ С БАННЕРОМ */
 .profile-editor-card {
@@ -272,7 +292,6 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     border: 1px solid rgba(255, 255, 255, 0.05);
     overflow: hidden;
     padding-bottom: 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 .profile-preview-banner {
@@ -281,7 +300,6 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     background-size: cover;
     background-position: center;
     position: relative;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .profile-preview-avatar-container {
@@ -297,7 +315,6 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     border-radius: 50%;
     border: 4px solid #161c24;
     object-fit: cover;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
 }
 
 .form-group {
@@ -309,8 +326,8 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     padding: 0 20px;
 }
 
-.input-label { font-size: 13px; color: #8a99ad; font-weight: 600; margin-bottom: -5px; }
-.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 5px; }
+.input-label { font-size: 13px; color: #8a99ad; font-weight: 600; }
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
 .btn-upload-custom {
     background: #1e2530;
@@ -320,13 +337,11 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     border-radius: 6px;
     cursor: pointer;
     text-align: center;
-    font-size: 13px;
-    transition: all 0.2s ease;
 }
 
-.btn-upload-custom:hover { border-color: #3b82f6; color: #ffffff; background: rgba(59, 130, 246, 0.05); }
+.btn-upload-custom:hover { border-color: #3b82f6; color: #ffffff; }
 
-/* КАРТОЧКИ В АДМИНКЕ И НАКАЗАНИЯ */
+/* АДМИНКА */
 .admin-user-card {
     background: #161c24;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -335,33 +350,23 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     display: flex;
     flex-direction: column;
     gap: 15px;
-    transition: all 0.3s ease;
 }
 
-.admin-user-card.status-banned {
-    border-color: #ff4b4b;
-    background: linear-gradient(135deg, #161c24 0%, rgba(255, 75, 75, 0.05) 100%);
-}
-
-.admin-user-card.status-muted {
-    border-color: #ff9f43;
-    background: linear-gradient(135deg, #161c24 0%, rgba(255, 159, 67, 0.05) 100%);
-}
-
+.admin-user-card.status-banned { border-color: #ff4b4b; background: linear-gradient(135deg, #161c24 0%, rgba(255, 75, 75, 0.05) 100%); }
+.admin-user-card.status-muted { border-color: #ff9f43; background: linear-gradient(135deg, #161c24 0%, rgba(255, 159, 67, 0.05) 100%); }
 .admin-card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 10px; }
 .admin-actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
 
-.btn-punish { padding: 8px 12px; border: none; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; color: #fff; }
+.btn-punish { padding: 8px 12px; border: none; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; color: #fff; }
 .btn-punish.ban { background: #ff4b4b; }
 .btn-punish.unban { background: #10b981; }
 .btn-punish.mute { background: #ff9f43; }
 .btn-punish.unmute { background: #3b82f6; }
-.btn-punish:hover { filter: brightness(1.2); transform: translateY(-1px); }
 
 .status-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 700; }
-select { background: #12171f; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 4px; outline: none; cursor: pointer; }
+select { background: #12171f; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 4px; }
 
-/* КОММЕНТАРИИ СТЕНЫ */
+/* СТЕНА ПРОФИЛЯ */
 .comment-item {
     background: #12171f;
     border: 1px solid rgba(255, 255, 255, 0.03);
@@ -377,5 +382,5 @@ select { background: #12171f; color: #fff; border: 1px solid rgba(255,255,255,0.
 .comment-author:hover { text-decoration: underline; }
 .comment-text { color: #e2e8f0; font-size: 14px; word-break: break-word; }
 
-.clickable-profile-link { cursor: pointer; transition: color 0.2s ease; }
+.clickable-profile-link { cursor: pointer; }
 .clickable-profile-link:hover { color: #3b82f6 !important; text-decoration: underline; }
