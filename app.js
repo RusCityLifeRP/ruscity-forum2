@@ -1,4 +1,4 @@
-// КОНФИГУРАЦИЯ FIREBASE (ВСТАВЬ СВОИ ДАННЫЕ СЮДА)
+// КОНФИГУРАЦИЯ FIREBASE (ВАШИ АКТУАЛЬНЫЕ ДАННЫЕ)
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -9,7 +9,7 @@ const firebaseConfig = {
     appId: "1:728638066749:web:78b207bc6765e3dc685a54"
 };
 
-// Инициализация
+// Инициализация Firebase
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -26,7 +26,6 @@ const ROLES = [
     "Руководство проекта"
 ];
 
-// Список ролей, которым доступно скрытие серверов и админка
 const ADMIN_ROLES = [
     "Руководство проекта", 
     "Специальный администратор", 
@@ -37,6 +36,7 @@ const ADMIN_ROLES = [
 ];
 
 let currentUserData = null;
+let selectedServerId = ""; // Храним выбранный сервер
 
 // СЛУШАТЕЛЬ АВТОРИЗАЦИИ
 auth.onAuthStateChanged(user => {
@@ -51,11 +51,9 @@ auth.onAuthStateChanged(user => {
             if (!currentUserData) return;
             currentUserData.uid = user.uid;
 
-            // Заполнение полей в настройках профиля, чтобы они там уже стояли
             if(document.getElementById('edit-username')) document.getElementById('edit-username').value = currentUserData.username || "";
             if(document.getElementById('edit-avatar')) document.getElementById('edit-avatar').value = currentUserData.avatar || "";
 
-            // Рендер шапки
             if (authButtons) authButtons.classList.add('hidden');
             if (userMenu) userMenu.classList.remove('hidden');
             if (btnProfile) btnProfile.classList.remove('hidden');
@@ -67,7 +65,6 @@ auth.onAuthStateChanged(user => {
                 document.getElementById('header-avatar').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
             }
 
-            // Доступы к админке
             if (btnAdmin) {
                 if (ADMIN_ROLES.includes(currentUserData.role)) {
                     btnAdmin.classList.remove('hidden');
@@ -85,13 +82,9 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ФУНКЦИЯ РЕДАКТИРОВАНИЯ ПРОФИЛЯ (ПОЧИНЕНО)
+// ФУНКЦИЯ РЕДАКТИРОВАНИЯ ПРОФИЛЯ
 function saveProfileChanges() {
-    if (!auth.currentUser) {
-        alert("Вы должны быть авторизованы!");
-        return;
-    }
-
+    if (!auth.currentUser) return;
     const newUsername = document.getElementById('edit-username').value.trim();
     const newAvatar = document.getElementById('edit-avatar').value.trim();
 
@@ -106,12 +99,10 @@ function saveProfileChanges() {
     }).then(() => {
         alert("Профиль успешно обновлен!");
         showScreen('screen-forum');
-    }).catch(error => {
-        alert("Ошибка сохранения: " + error.message);
     });
 }
 
-// ЗАГРУЗКА ИГРОВЫХ СЕРВЕРОВ (ИСПРАВЛЕНЫ КЛИКИ + КНОПКА СКРЫТЬ)
+// ЗАГРУЗКА ИГРОВЫХ СЕРВЕРОВ КНОПКАМИ
 function loadServers() {
     const serversListDiv = document.getElementById('servers-list');
     if (!serversListDiv) return;
@@ -119,20 +110,12 @@ function loadServers() {
     db.ref('servers').on('value', snapshot => {
         serversListDiv.innerHTML = '';
         const servers = snapshot.val();
-        
-        if (!servers) {
-            serversListDiv.innerHTML = '<p style="color:#ff4b4b; padding:10px;">Серверы не найдены.</p>';
-            return;
-        }
+        if (!servers) return;
 
         Object.keys(servers).forEach(serverId => {
             const server = servers[serverId];
-            
-            // Если сервер скрыт и текущий юзер НЕ админ — не показываем его
             const isUserAdmin = currentUserData && ADMIN_ROLES.includes(currentUserData.role);
-            if (server.hidden && !isUserAdmin) {
-                return; 
-            }
+            if (server.hidden && !isUserAdmin) return; 
 
             let emoji = "🎮";
             if (serverId.includes('moscow') || (server.name && server.name.includes('Москва'))) emoji = "🏰";
@@ -141,48 +124,112 @@ function loadServers() {
 
             const card = document.createElement('div');
             card.className = 'server-card-item';
-            
-            // Маркируем визуально скрытый для обычных игроков сервер в интерфейсе админа
-            if(server.hidden) {
-                card.style.opacity = "0.6";
-                card.style.borderLeft = "4px dashed #3a4150";
-            }
+            if(server.hidden) card.style.opacity = "0.5";
 
-            // Создаем раздельные зоны, чтобы клик по кнопке "Скрыть" не открывал сам сервер
             let hideButtonHtml = '';
             if (isUserAdmin) {
-                hideButtonHtml = `<button class="btn-admin-action" onclick="toggleHideServer('${serverId}', ${server.hidden || false})">
+                hideButtonHtml = `<button class="btn-admin-action" onclick="toggleHideServer('${serverId}', ${server.hidden || false}); event.stopPropagation();">
                     ${server.hidden ? 'Показать' : 'Скрыть'}
                 </button>`;
             }
 
             card.innerHTML = `
-                <div class="server-clickable-area" onclick="openSection('${serverId}')">
-                    <h3>${emoji} ${server.name || serverId} ${server.hidden ? ' <span style="font-size:0.7rem; color:red;">(СКРЫТ)</span>' : ''}</h3>
+                <div class="server-clickable-area" onclick="openServerCategories('${serverId}', '${server.name || serverId}', '${emoji}')">
+                    <h3>${emoji} ${server.name || serverId}</h3>
                     <p>Перейти к разделам сервера</p>
                 </div>
-                <div class="server-actions-area">
-                    ${hideButtonHtml}
-                </div>
+                <div>${hideButtonHtml}</div>
             `;
             serversListDiv.appendChild(card);
         });
     });
 }
 
-// ФУНКЦИЯ СКРЫТЬ / ПОКАЗАТЬ СЕРВЕР
-function toggleHideServer(serverId, currentHiddenStatus) {
-    db.ref('servers/' + serverId).update({
-        hidden: !currentHiddenStatus
-    }).then(() => {
-        alert("Статус видимости сервера изменен!");
-    }).catch(error => {
-        alert("Ошибка изменения видимости: " + error.message);
+// ОТКРЫТИЕ КАТЕГОРИЙ СЕРВЕРА (Гос, Крайм, Жалобы...)
+function openServerCategories(serverId, serverName, emoji) {
+    selectedServerId = serverId;
+    showScreen('screen-categories');
+    
+    const titleEl = document.getElementById('current-server-title');
+    if (titleEl) titleEl.innerText = `${emoji} ${serverName}`;
+
+    const categoriesListDiv = document.getElementById('categories-list');
+    if (!categoriesListDiv) return;
+
+    // Список базовых категорий форума
+    const categories = [
+        { id: "gov", name: "🏢 Государственные организации", desc: "Официальные структуры и ведомства" },
+        { id: "crime", name: "🥷 Криминальные организации", desc: "ОПГ, синдикаты, бандитские группировки" },
+        { id: "players_reports", name: "🚫 Жалобы на игроков", desc: "Нарушения правил сервера со стороны игроков" },
+        { id: "admin_reports", name: "🛠️ Жалобы на администрацию", desc: "Обжалование наказаний и действия администрации" },
+        { id: "leaders_reports", name: "💼 Жалобы на лидеров", desc: "Жалобы на халатность или нарушения от лидеров организаций" }
+    ];
+
+    categoriesListDiv.innerHTML = "";
+    categories.forEach(cat => {
+        const item = document.createElement('div');
+        item.className = 'forum-category-item';
+        item.onclick = () => openCategoryFactions(cat.id, cat.name);
+        
+        item.innerHTML = `
+            <h3>${cat.name}</h3>
+            <p>${cat.desc}</p>
+        `;
+        categoriesListDiv.appendChild(item);
     });
 }
 
-function openSection(serverId) {
-    alert("Вы перешли в разделы сервера: " + serverId);
+// ОТКРЫТИЕ ВНУТРЕННИХ ТЕМ (Фракций)
+function openCategoryFactions(categoryId, categoryName) {
+    showScreen('screen-factions');
+    
+    const catTitleEl = document.getElementById('current-category-title');
+    if (catTitleEl) catTitleEl.innerText = categoryName;
+
+    const backBtn = document.getElementById('btn-back-to-categories');
+    if (backBtn) {
+        backBtn.onclick = () => showScreen('screen-categories');
+    }
+
+    const factionsListDiv = document.getElementById('factions-list');
+    if (!factionsListDiv) return;
+    factionsListDiv.innerHTML = "";
+
+    let topics = [];
+
+    // Наполнение контентом подмодулей в зависимости от категории
+    if (categoryId === "gov") {
+        topics = [
+            "Правительство", "Следственный комитет России", "Прокуратура", 
+            "Судебная Власть", "Федеральная Служба Безопасности", 
+            "Федеральная Служба Исполнения Наказаний", "Росгвардия", 
+            "Управление Внутренних Дел (МВД)", "Управление ГИБДД", 
+            "Центр Организации Дорожного Движения (ЦОДД)", "Армия", 
+            "Городская Больница № 3", "Городская Больница № 7"
+        ];
+    } else if (categoryId === "crime") {
+        topics = ["ЧОП", "Ночные волки", "Бакшиш"];
+    } else {
+        topics = ["Раздел правил подачи жалоб", "Архив жалоб", "Жалобы в обработке"];
+    }
+
+    topics.forEach(topic => {
+        const item = document.createElement('div');
+        item.className = 'forum-category-item';
+        item.style.borderLeft = "4px solid #ff4b4b"; // Красный маркер для тем фракций
+        item.onclick = () => alert(`Открытие подфорума фракции: ${topic}`);
+        
+        item.innerHTML = `
+            <h3>📌 ${topic}</h3>
+            <p>Перейти к темам и заявлениям организации</p>
+        `;
+        factionsListDiv.appendChild(item);
+    });
+}
+
+// Переключение видимости сервера администратором
+function toggleHideServer(serverId, currentHiddenStatus) {
+    db.ref('servers/' + serverId).update({ hidden: !currentHiddenStatus });
 }
 
 // АДМИН-ПАНЕЛЬ
@@ -221,9 +268,7 @@ function openAdminPanel() {
 
 function updateUserRole(uid, newRole) {
     if (!ROLES.includes(newRole)) return;
-    db.ref('users/' + uid).update({ role: newRole })
-        .then(() => alert("Роль успешно изменена!"))
-        .catch(error => alert("Ошибка изменения роли: " + error.message));
+    db.ref('users/' + uid).update({ role: newRole }).then(() => alert("Роль изменена!"));
 }
 
 function showScreen(screenId) {
@@ -236,7 +281,7 @@ function loginUser() {
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-password').value;
     auth.signInWithEmailAndPassword(email, pass)
-        .then(() => { alert("Вход выполнен!"); showScreen('screen-forum'); })
+        .then(() => { showScreen('screen-forum'); })
         .catch(err => alert("Ошибка: " + err.message));
 }
 
