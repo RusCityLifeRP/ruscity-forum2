@@ -17,14 +17,23 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Базовые системные роли проекта
+// Обновленные системные роли проекта с учетом новых полномочий
 const ROLES = [
-    "Пользователь", "Заместитель главного администратора форума", "Главный администратор форума",
-    "Заместитель главного администратора", "Главный администратор", "Специальный администратор", "Руководство проекта"
+    "Пользователь", 
+    "Президент РФ",
+    "Полномочный председатель Президента РФ",
+    "Генеральный прокурор РФ",
+    "Председатель верховного суда РФ",
+    "Заместитель главного администратора форума", 
+    "Главный администратор форума",
+    "Заместитель главного администратора", 
+    "Главный администратор", 
+    "Специальный администратор", 
+    "Руководство проекта"
 ];
 
-// Список ролей, которые считаются Администрацией форума
-const ADMIN_PANEL_ROLES = ["Руководство проекта", "Специальный администратор", "Главный администратор", "Заместитель главного администратора"];
+// Список ролей, которые считаются Администрацией форума (имеют доступ в админку)
+const ADMIN_PANEL_ROLES = ["Руководство проекта", "Специальный администратор", "Главный администратор", "Заместитель главного администратора", "Президент РФ", "Полномочный председатель Президента РФ"];
 
 // Твои точные фракции для выпадающего списка выдачи лидерства
 const LEADER_FACTIONS_LIST = [
@@ -57,7 +66,7 @@ let selectedFactionId = "";
 let selectedFactionName = ""; 
 let selectedTopicId = ""; 
 
-// Стек для бесконечной вложенности подтем (динамический рекурсивный переход)
+// Стек для бесконечной вложенности подтем
 let topicNavigationStack = []; 
 
 let base64Avatar = ""; 
@@ -66,26 +75,46 @@ let isGlobalInfoZone = false;
 let viewedProfileUid = "";
 
 // ==========================================
-// 1.5 НАДЕЖНАЯ ПРОВЕРКА ПРАВ ЛИДЕРА И МОДЕРАЦИИ
+// 1.5 УЛУЧШЕННАЯ ПРОВЕРКА ПРАВ (ЛИДЕРЫ, ГЛОБАЛЬНЫЕ РОЛИ И СУДЬИ/ПРОКУРОРЫ)
 // ==========================================
 function checkModerationRights() {
     if (!currentUserData) return false;
     
-    // Руководство проекта может модерировать везде
-    if (currentUserData.role === "Руководство проекта") return true;
-    // В глобальных инфо-зон лидеры не редактируют
+    const userRole = currentUserData.role || "";
+
+    // 1. Роли с абсолютным доступом ко всем веткам на всех серверах
+    if (userRole === "Руководство проекта" || userRole === "Президент РФ" || userRole === "Полномочный председатель Президента РФ") {
+        return true;
+    }
+    
+    // В глобальных инфо-зонах дальнейшие роли (лидеры, прокуроры) не редактируют
     if (isGlobalInfoZone) return false;
-    // Блокируем, если не определился сервер или фракция
     if (!selectedServerName || !selectedFactionName) return false;
     
-    const userRoleLower = (currentUserData.role || "").toLowerCase().trim();
-    const serverLower = selectedServerName.toLowerCase().trim();
     const factionLower = selectedFactionName.toLowerCase().trim();
+
+    // 2. Генеральный прокурор РФ (Модерирует только Следственный комитет и Прокуратуру на всех серверах)
+    if (userRole === "Генеральный прокурор РФ") {
+        if (factionLower.includes("следственного комитета") || factionLower.includes("прокуратуры")) {
+            return true;
+        }
+    }
+
+    // 3. Председатель верховного суда РФ (Модерирует только Судебную власть на всех серверах)
+    if (userRole === "Председатель верховного суда РФ") {
+        if (factionLower.includes("судебная власть")) {
+            return true;
+        }
+    }
+
+    // 4. Обычные локальные лидеры фракций (Привязка: Город + Лидер + Фракция)
+    const userRoleLower = userRole.toLowerCase().trim();
+    const serverLower = selectedServerName.toLowerCase().trim();
     
-    // Сверяем ключевые слова: город + слово "лидер" + название фракции
     if (userRoleLower.includes(serverLower) && userRoleLower.includes("лидер") && userRoleLower.includes(factionLower)) {
         return true;
     }
+    
     return false;
 }
 
@@ -139,7 +168,7 @@ auth.onAuthStateChanged(user => {
 });
 
 function updateAdminButtonsVisibility() {
-    const isProjectAdmin = currentUserData && currentUserData.role === "Руководство проекта";
+    const isProjectAdmin = currentUserData && (currentUserData.role === "Руководство проекта" || currentUserData.role === "Президент РФ");
     const hasFactionRights = checkModerationRights(); 
     const btnCreateFaction = document.getElementById('btn-show-create-faction');
     const btnCreateTopic = document.getElementById('btn-show-create-topic');
@@ -265,7 +294,7 @@ function loadServers() {
             item.onclick = () => {
                 selectedServerName = ""; 
                 selectedFactionName = "";
-                topicNavigationStack = []; // Сбрасываем стек при заходе с корня
+                topicNavigationStack = [];
                 openFactionTopics(c.id, c.name, "info");
             };
             item.innerHTML = `<div class="item-text-area"><h3>${c.name}</h3><p>${c.desc}</p></div>`;
@@ -288,7 +317,7 @@ function loadServers() {
         
         Object.keys(servers).forEach(id => {
             const s = servers[id];
-            const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
+            const isLeader = currentUserData && (currentUserData.role === "Руководство проекта" || currentUserData.role === "Президент РФ");
             if (s.hidden && !isLeader) return;
             const card = document.createElement('div');
             card.className = 'server-card-item';
@@ -302,6 +331,7 @@ function loadServers() {
     });
 }
 
+// (Все функции категорий, фракций и серверов сохранены без изменений структуры данных)
 function openServerCategories(id, name, emoji) {
     selectedServerId = id;
     selectedServerName = name; 
@@ -310,7 +340,7 @@ function openServerCategories(id, name, emoji) {
     const div = document.getElementById('categories-list');
     if (!div) return;
     const cats = [
-        { id: "gov", name: "🏢 Государственные организации", desc: "Структуры и ведамства" },
+        { id: "gov", name: "🏢 Государственные организации", desc: "Структуры и ведомства" },
         { id: "crime", name: "🥷 Криминальные организации", desc: "ОПГ и синдикаты" },
         { id: "reports", name: "🚫 Жалобы", desc: "Обращения игроков" }
     ];
@@ -343,12 +373,12 @@ function openCategoryFactions(catId, catName) {
             return;
         }
         Object.keys(data).forEach(fId => {
-            const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
+            const isLeader = currentUserData && (currentUserData.role === "Руководство проекта" || currentUserData.role === "Президент РФ");
             const item = document.createElement('div');
             item.className = 'forum-category-item';
             item.style.borderLeft = "4px solid #3b82f6";
             item.onclick = () => {
-                topicNavigationStack = []; // Чистим навигацию
+                topicNavigationStack = []; 
                 openFactionTopics(fId, data[fId].name, "server");
             };
             
@@ -373,7 +403,7 @@ function deleteFaction(fId) {
 }
 
 // ==========================================
-// 5. ДВИЖОК ТЕМ И ПОДТЕМ (БЕСКОНЕЧНАЯ ВЛОЖЕННОСТЬ)
+// 5. ДВИЖОК ТЕМ И ПОДТЕМ (С ВОЗМОЖНОСТЬЮ УДАЛЕНИЯ ПОДТЕМ)
 // ==========================================
 function openFactionTopics(factionId, factionName, context = "server") {
     selectedFactionId = factionId;
@@ -399,12 +429,12 @@ function openFactionTopics(factionId, factionName, context = "server") {
         
         Object.keys(topics).forEach(tId => {
             const topic = topics[tId];
-            const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
+            const isLeader = currentUserData && (currentUserData.role === "Руководство проекта" || currentUserData.role === "Президент РФ");
             const item = document.createElement('div');
             item.className = 'forum-category-item';
             item.style.borderLeft = "4px solid #ff4b4b";
             item.onclick = () => {
-                topicNavigationStack = []; // Корень тем
+                topicNavigationStack = []; 
                 viewSelectedTopic(tId, topic.title || topic);
             };
             
@@ -421,7 +451,6 @@ function openFactionTopics(factionId, factionName, context = "server") {
     });
 }
 
-// Умный просмотр темы и подтем на любой глубине вложенности
 function viewSelectedTopic(tId, tTitle) {
     selectedTopicId = tId;
     showScreen('screen-view-topic');
@@ -439,7 +468,6 @@ function viewSelectedTopic(tId, tTitle) {
     }
     updateAdminButtonsVisibility();
 
-    // Генерация динамического пути с учетом рекурсии подтем
     let basePath = isGlobalInfoZone ? `global_topics/${selectedFactionId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`;
     if (topicNavigationStack.length > 0) {
         basePath += '/' + topicNavigationStack.join('/subtopics/') + '/subtopics/' + tId;
@@ -455,11 +483,11 @@ function viewSelectedTopic(tId, tTitle) {
         if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = content;
         if(document.getElementById('editor-rich-content')) document.getElementById('editor-rich-content').innerHTML = data.content || "";
         
-        // Рендерим подтемы, если они существуют в текущем узле
         renderSubTopicsList(data.subtopics);
     });
 }
 
+// Отрендерен список подтем с кнопкой удаления для модераторов/админов
 function renderSubTopicsList(subtopicsData) {
     const block = document.getElementById('subtopics-block');
     const list = document.getElementById('subtopics-list');
@@ -472,27 +500,49 @@ function renderSubTopicsList(subtopicsData) {
     }
 
     block.classList.remove('hidden');
+    const hasAccess = checkModerationRights();
+
     Object.keys(subtopicsData).forEach(subId => {
         const sub = subtopicsData[subId];
+        let deleteBtn = hasAccess ? `<button class="btn-delete-item" onclick="deleteSubTopic('${subId}'); event.stopPropagation();" style="padding: 4px 8px; font-size:12px; margin-left: 10px;">❌ Удалить</button>` : '';
+        
         list.innerHTML += `
             <div class="forum-category-item" style="background: #1e2530; padding: 12px; margin-bottom: 6px; border-radius: 6px; display:flex; justify-content:space-between; align-items:center; border-left: 3px solid #3b82f6;">
-                <div>
+                <div class="item-text-area">
                     <span style="color:#fff; font-weight:600;">📁 Подтема: ${sub.title}</span>
                 </div>
-                <button class="btn-primary" onclick="diveIntoSubTopic('${subId}', '${sub.title}')" style="padding: 5px 10px; font-size:13px;">Открыть</button>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <button class="btn-primary" onclick="diveIntoSubTopic('${subId}', '${sub.title}')" style="padding: 5px 10px; font-size:13px;">Открыть</button>
+                    ${deleteBtn}
+                </div>
             </div>`;
     });
 }
 
 function diveIntoSubTopic(subId, subTitle) {
-    topicNavigationStack.push(selectedTopicId); // Складываем текущую тему в стек возврата
+    topicNavigationStack.push(selectedTopicId); 
     viewSelectedTopic(subId, subTitle);
+}
+
+// Функция удаления подтемы с текущей глубины
+function deleteSubTopic(subId) {
+    if (!confirm("Вы уверены, что хотите полностью удалить эту подтему и всё её содержимое?")) return;
+    
+    let basePath = isGlobalInfoZone ? `global_topics/${selectedFactionId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`;
+    if (topicNavigationStack.length > 0) {
+        basePath += '/' + topicNavigationStack.join('/subtopics/') + '/subtopics/' + selectedTopicId + '/subtopics/' + subId;
+    } else {
+        basePath += '/' + selectedTopicId + '/subtopics/' + subId;
+    }
+    
+    db.ref(basePath).remove().then(() => {
+        alert("Подтема успешно удалена!");
+    });
 }
 
 function backFromTopicView() {
     if (topicNavigationStack.length > 0) {
-        const parentId = topicNavigationStack.pop(); // Вытаскиваем родительский ID
-        // Нам нужно вытащить имя родителя из БД, либо просто запустить рендер по ID
+        const parentId = topicNavigationStack.pop(); 
         db.ref(isGlobalInfoZone ? `global_topics/${selectedFactionId}/${parentId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}/${parentId}`).once('value', s => {
             const d = s.val();
             viewSelectedTopic(parentId, d ? d.title : "Назад");
@@ -596,7 +646,7 @@ function toggleFactionForm() { document.getElementById('create-faction-form').cl
 function toggleTopicForm() { document.getElementById('create-topic-form').classList.toggle('hidden'); }
 
 function createNewFaction() {
-    if (!currentUserData || currentUserData.role !== "Руководство проекта" || isGlobalInfoZone) return;
+    if (!currentUserData || (currentUserData.role !== "Руководство проекта" && currentUserData.role !== "Президент РФ") || isGlobalInfoZone) return;
     if (currentUserData.isMuted) { alert("Вы замучены!"); return; }
     const name = document.getElementById('new-faction-name').value.trim();
     if (!name) return;
@@ -607,7 +657,7 @@ function createNewFaction() {
 }
 
 function toggleHideServer(id, stat) {
-    if (!currentUserData || currentUserData.role !== "Руководство проекта") return;
+    if (!currentUserData || (currentUserData.role !== "Руководство проекта" && currentUserData.role !== "Президент РФ")) return;
     db.ref('servers/' + id).update({ hidden: !stat });
 }
 
