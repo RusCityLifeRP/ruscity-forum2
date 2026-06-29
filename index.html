@@ -20,7 +20,7 @@
             <button onclick="showScreen('screen-forum')" class="nav-btn-modern">🏠 Главная</button>
             <button id="btn-profile-edit" class="nav-btn-modern hidden" onclick="showScreen('screen-profile')">⚙️ Настройки</button>
             <button id="btn-admin-panel" class="nav-btn-modern btn-admin-accent hidden" onclick="openAdminPanel()">👑 Админ-панель</button>
-            <button onclick="showScreen('screen-register')" class="nav-btn">Регистрация</button>
+            <button id="btn-header-register" onclick="showScreen('screen-register')" class="nav-btn-register">Регистрация</button>
         </nav>
 
         <div class="auth-zone">
@@ -149,31 +149,28 @@
         </div>
 
         <div id="screen-register" class="screen hidden" style="padding: 20px; max-width: 400px; margin: 0 auto;">
-    <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #fff;">Регистрация</h2>
-        <p style="color: #8a99ad;">Создайте аккаунт, чтобы начать общение</p>
-    </div>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: #fff;">Регистрация</h2>
+                <p style="color: #8a99ad;">Создайте аккаунт, чтобы начать общение</p>
+            </div>
 
-    <div style="display: flex; flex-direction: column; gap: 15px;">
-        <input type="text" id="reg-username" placeholder="Nick_Name (например: Ivan_Ivanov)" 
-               style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
-        
-        <input type="email" id="reg-email" placeholder="Ваш Email" 
-               style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
-        
-        <input type="password" id="reg-password" placeholder="Пароль (минимум 6 символов)" 
-               style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
-        
-        
-        <button onclick="showScreen('screen-login')" class="btn-secondary" 
-                style="padding: 12px; cursor: pointer; background: transparent; color: #8a99ad; border: 1px solid #334155; border-radius: 6px;">
-            Уже есть аккаунт? Войти
-        </button>
-        <button onclick="registerUser()" class="btn-primary" style="margin-top: 10px; width: 100%;">Зарегистрироваться
-        </button>
-
-    </div>
-</div>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="text" id="reg-username" placeholder="Nick_Name (например: Ivan_Ivanov)" 
+                       style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
+                
+                <input type="email" id="reg-email" placeholder="Ваш Email" 
+                       style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
+                
+                <input type="password" id="reg-password" placeholder="Пароль (минимум 6 символов)" 
+                       style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
+                
+                <button onclick="showScreen('screen-login')" class="btn-secondary" 
+                        style="padding: 12px; cursor: pointer; background: transparent; color: #8a99ad; border: 1px solid #334155; border-radius: 6px;">
+                    Уже есть аккаунт? Войти
+                </button>
+                <button onclick="registerUser()" class="btn-primary" style="margin-top: 10px; width: 100%;">Зарегистрироваться</button>
+            </div>
+        </div>
 
         <div id="screen-login" class="screen hidden">
             <h2 style="text-align: center; margin-bottom: 25px;">Вход на forum</h2>
