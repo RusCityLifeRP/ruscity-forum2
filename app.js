@@ -1,4 +1,4 @@
-// НАСТРОЙКА FIREBASE (ЗАМЕНИ НА СВОИ КЛЮЧИ ИЗ КОНСОЛИ FIREBASE!)
+// КОНФИГУРАЦИЯ FIREBASE (ВСТАВЬ СВОИ ДАННЫЕ СЮДА)
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -7,7 +7,6 @@ const firebaseConfig = {
     storageBucket: "ruscity-349e7.firebasestorage.app",
     messagingSenderId: "728638066749",
     appId: "1:728638066749:web:78b207bc6765e3dc685a54"
-
 };
 
 // Инициализация
@@ -17,7 +16,6 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Список ролей
 const ROLES = [
     "Пользователь",
     "Заместитель главного администратора форума",
@@ -28,11 +26,22 @@ const ROLES = [
     "Руководство проекта"
 ];
 
+// Список ролей, которым доступно скрытие серверов и админка
+const ADMIN_ROLES = [
+    "Руководство проекта", 
+    "Специальный администратор", 
+    "Главный администратор", 
+    "Заместитель главного администратора",
+    "Главный администратор форума",
+    "Заместитель главного администратора форума"
+];
+
 let currentUserData = null;
 
-// СЛУШАТЕЛЬ СОСТОЯНИЯ АВТОРИЗАЦИИ
+// СЛУШАТЕЛЬ АВТОРИЗАЦИИ
 auth.onAuthStateChanged(user => {
     const btnAdmin = document.getElementById('btn-admin-panel');
+    const btnProfile = document.getElementById('btn-profile-edit');
     const authButtons = document.getElementById('auth-buttons');
     const userMenu = document.getElementById('user-menu');
     
@@ -42,9 +51,15 @@ auth.onAuthStateChanged(user => {
             if (!currentUserData) return;
             currentUserData.uid = user.uid;
 
-            // Обновляем шапку
+            // Заполнение полей в настройках профиля, чтобы они там уже стояли
+            if(document.getElementById('edit-username')) document.getElementById('edit-username').value = currentUserData.username || "";
+            if(document.getElementById('edit-avatar')) document.getElementById('edit-avatar').value = currentUserData.avatar || "";
+
+            // Рендер шапки
             if (authButtons) authButtons.classList.add('hidden');
             if (userMenu) userMenu.classList.remove('hidden');
+            if (btnProfile) btnProfile.classList.remove('hidden');
+            
             if (document.getElementById('header-username')) {
                 document.getElementById('header-username').innerText = currentUserData.username || "Пользователь";
             }
@@ -52,18 +67,9 @@ auth.onAuthStateChanged(user => {
                 document.getElementById('header-avatar').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
             }
 
-            // Проверка ролей для доступа к админке
-            const allowedRoles = [
-                "Руководство проекта", 
-                "Специальный администратор", 
-                "Главный администратор", 
-                "Заместитель главного администратора",
-                "Главный администратор форума",
-                "Заместитель главного администратора форума"
-            ];
-
+            // Доступы к админке
             if (btnAdmin) {
-                if (allowedRoles.includes(currentUserData.role)) {
+                if (ADMIN_ROLES.includes(currentUserData.role)) {
                     btnAdmin.classList.remove('hidden');
                 } else {
                     btnAdmin.classList.add('hidden');
@@ -75,10 +81,37 @@ auth.onAuthStateChanged(user => {
         if (authButtons) authButtons.classList.remove('hidden');
         if (userMenu) userMenu.classList.add('hidden');
         if (btnAdmin) btnAdmin.classList.add('hidden');
+        if (btnProfile) btnProfile.classList.add('hidden');
     }
 });
 
-// ДИНАМИЧЕСКАЯ ЗАГРУЗКА СЕРВЕРОВ
+// ФУНКЦИЯ РЕДАКТИРОВАНИЯ ПРОФИЛЯ (ПОЧИНЕНО)
+function saveProfileChanges() {
+    if (!auth.currentUser) {
+        alert("Вы должны быть авторизованы!");
+        return;
+    }
+
+    const newUsername = document.getElementById('edit-username').value.trim();
+    const newAvatar = document.getElementById('edit-avatar').value.trim();
+
+    if (!newUsername) {
+        alert("Никнейм не может быть пустым!");
+        return;
+    }
+
+    db.ref('users/' + auth.currentUser.uid).update({
+        username: newUsername,
+        avatar: newAvatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png"
+    }).then(() => {
+        alert("Профиль успешно обновлен!");
+        showScreen('screen-forum');
+    }).catch(error => {
+        alert("Ошибка сохранения: " + error.message);
+    });
+}
+
+// ЗАГРУЗКА ИГРОВЫХ СЕРВЕРОВ (ИСПРАВЛЕНЫ КЛИКИ + КНОПКА СКРЫТЬ)
 function loadServers() {
     const serversListDiv = document.getElementById('servers-list');
     if (!serversListDiv) return;
@@ -88,13 +121,19 @@ function loadServers() {
         const servers = snapshot.val();
         
         if (!servers) {
-            serversListDiv.innerHTML = '<p style="color:#ff4b4b;">Ошибка доступа. Проверьте Rules в Firebase.</p>';
+            serversListDiv.innerHTML = '<p style="color:#ff4b4b; padding:10px;">Серверы не найдены.</p>';
             return;
         }
 
         Object.keys(servers).forEach(serverId => {
             const server = servers[serverId];
             
+            // Если сервер скрыт и текущий юзер НЕ админ — не показываем его
+            const isUserAdmin = currentUserData && ADMIN_ROLES.includes(currentUserData.role);
+            if (server.hidden && !isUserAdmin) {
+                return; 
+            }
+
             let emoji = "🎮";
             if (serverId.includes('moscow') || (server.name && server.name.includes('Москва'))) emoji = "🏰";
             if (serverId.includes('sochi') || (server.name && server.name.includes('Сочи'))) emoji = "🌴";
@@ -102,14 +141,28 @@ function loadServers() {
 
             const card = document.createElement('div');
             card.className = 'server-card-item';
-            card.addEventListener('click', () => {
-                openSection(serverId);
-            });
+            
+            // Маркируем визуально скрытый для обычных игроков сервер в интерфейсе админа
+            if(server.hidden) {
+                card.style.opacity = "0.6";
+                card.style.borderLeft = "4px dashed #3a4150";
+            }
+
+            // Создаем раздельные зоны, чтобы клик по кнопке "Скрыть" не открывал сам сервер
+            let hideButtonHtml = '';
+            if (isUserAdmin) {
+                hideButtonHtml = `<button class="btn-admin-action" onclick="toggleHideServer('${serverId}', ${server.hidden || false})">
+                    ${server.hidden ? 'Показать' : 'Скрыть'}
+                </button>`;
+            }
 
             card.innerHTML = `
-                <div class="server-card-content">
-                    <h3>${emoji} ${server.name || serverId}</h3>
+                <div class="server-clickable-area" onclick="openSection('${serverId}')">
+                    <h3>${emoji} ${server.name || serverId} ${server.hidden ? ' <span style="font-size:0.7rem; color:red;">(СКРЫТ)</span>' : ''}</h3>
                     <p>Перейти к разделам сервера</p>
+                </div>
+                <div class="server-actions-area">
+                    ${hideButtonHtml}
                 </div>
             `;
             serversListDiv.appendChild(card);
@@ -117,11 +170,22 @@ function loadServers() {
     });
 }
 
+// ФУНКЦИЯ СКРЫТЬ / ПОКАЗАТЬ СЕРВЕР
+function toggleHideServer(serverId, currentHiddenStatus) {
+    db.ref('servers/' + serverId).update({
+        hidden: !currentHiddenStatus
+    }).then(() => {
+        alert("Статус видимости сервера изменен!");
+    }).catch(error => {
+        alert("Ошибка изменения видимости: " + error.message);
+    });
+}
+
 function openSection(serverId) {
     alert("Вы перешли в разделы сервера: " + serverId);
 }
 
-// АДМИНКА
+// АДМИН-ПАНЕЛЬ
 function openAdminPanel() {
     showScreen('screen-admin');
     const list = document.getElementById('admin-users-list');
@@ -183,5 +247,3 @@ function logout() {
 document.addEventListener("DOMContentLoaded", () => {
     loadServers();
 });
-
-
