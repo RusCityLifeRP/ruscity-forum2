@@ -10,7 +10,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
-
     <header class="forum-header">
         <div class="header-logo" onclick="showScreen('screen-forum')">
             <span class="logo-main">RusCity</span><span class="logo-sub">Life RP</span>
@@ -20,13 +19,14 @@
             <button onclick="showScreen('screen-forum')" class="nav-btn-modern">🏠 Главная</button>
             <button id="btn-profile-edit" class="nav-btn-modern hidden" onclick="showScreen('screen-profile')">⚙️ Настройки</button>
             <button id="btn-admin-panel" class="nav-btn-modern btn-admin-accent hidden" onclick="openAdminPanel()">👑 Админ-панель</button>
-            <button id="btn-header-register" onclick="showScreen('screen-register')" class="nav-btn">Регистрация</button>
         </nav>
-
         <div class="auth-zone">
-            <div id="auth-buttons">
-                <button onclick="showScreen('screen-login')" class="btn-primary">Войти</button>
+            <!-- КНОПКИ ДЛЯ ГОСТЕЙ (Скрываются целиком при входе в аккаунт) -->
+            <div id="auth-buttons" style="display: flex; align-items: center; gap: 12px;">
+                <button onclick="showScreen('screen-login')" style="background: transparent; color: #a0aab8; border: 1px solid #3a4454; padding: 8px 18px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">Войти</button>
+                <button onclick="showScreen('screen-register')" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; border: none; padding: 9px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.2s ease;">Регистрация</button>
             </div>
+            
             <div id="user-menu" class="user-profile-menu hidden" onclick="if(auth.currentUser) openPublicProfile(auth.currentUser.uid)">
                 <img id="header-avatar" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Аватар" class="profile-avatar-mini">
                 <span id="header-username" class="profile-username-text">Загрузка...</span>
@@ -34,61 +34,49 @@
             </div>
         </div>
     </header>
-
     <main class="forum-container">
         
         <!-- ЭКРАН 1: ГЛАВНЫЙ -->
         <div id="screen-forum" class="screen">
             <h2 class="page-title">Важная информация</h2>
             <div id="info-sections-list" class="sections-list" style="margin-bottom: 40px;"></div>
-
             <h2 class="page-title">Игровые серверы RusCity Life RP</h2>
             <div id="servers-list" class="sections-list"></div>
         </div>
-
         <!-- ЭКРАН 2: КАТЕГОРИИ СЕРВЕРА -->
         <div id="screen-categories" class="screen hidden">
             <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
             <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
             <div id="categories-list" class="sections-list"></div>
         </div>
-
         <!-- ЭКРАН 3: ФРАКЦИИ / ОРГАНИЗАЦИИ -->
         <div id="screen-factions" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
                 <button id="btn-show-create-faction" class="btn-primary hidden" onclick="toggleFactionForm()">+ Создать организацию</button>
             </div>
-
             <h2 id="current-category-title" class="page-title">🏢 Государственные организации</h2>
-
             <div id="create-faction-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,75,75,0.2);">
                 <h3>Создание новой фракции</h3>
                 <input type="text" id="new-faction-name" placeholder="Название фракции">
                 <button class="btn-primary" onclick="createNewFaction()">Добавить организацию</button>
             </div>
-
             <div id="factions-list" class="sections-list"></div>
         </div>
-
         <!-- ЭКРАН 4: СПИСОК ТЕМ -->
         <div id="screen-topics" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-factions">← Назад</button>
                 <button id="btn-show-create-topic" class="btn-primary hidden" onclick="toggleTopicForm()">+ Создать тему</button>
             </div>
-
             <h2 id="current-faction-title" class="page-title">📌 Название раздела</h2>
-
             <div id="create-topic-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,75,75,0.2);">
                 <h3>Создание новой темы</h3>
                 <input type="text" id="new-topic-name" placeholder="Например: Заявления на СС">
                 <button class="btn-primary" onclick="createNewTopic()">Опубликовать тему</button>
             </div>
-
             <div id="topics-list" class="sections-list"></div>
         </div>
-
         <!-- ЭКРАН 5: ПРОСМОТР ТЕМЫ + ПОДТЕМЫ -->
         <div id="screen-view-topic" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -107,7 +95,6 @@
                     <h3 style="color: #fff; margin-bottom: 15px; font-size: 16px;">📁 Вложенные подразделы / подтемы:</h3>
                     <div id="subtopics-list" class="sections-list"></div>
                 </div>
-
                 <!-- Форма создания подтемы -->
                 <div id="create-subtopic-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid rgba(59,130,246,0.2);">
                     <h3>Создание новой подтемы</h3>
@@ -129,7 +116,6 @@
                                 <option value="Times New Roman">Times New Roman</option>
                                 <option value="Segoe UI" selected>Segoe UI</option>
                             </select>
-
                             <select onchange="formatText('fontSize', this.value)">
                                 <option value="1">Очень маленький</option>
                                 <option value="2">Маленький</option>
@@ -139,16 +125,13 @@
                                 <option value="6">Очень большой</option>
                                 <option value="7">Максимальный</option>
                             </select>
-
                             <button type="button" onclick="formatText('bold')" title="Жирный"><b>B</b></button>
                             <button type="button" onclick="formatText('italic')" title="Курсив"><i>I</i></button>
                             <button type="button" onclick="formatText('underline')" title="Подчеркнутый"><u>U</u></button>
                             <button type="button" onclick="formatText('strikeThrough')" title="Зачеркнутый"><s>S</s></button>
-
                             <button type="button" onclick="formatText('justifyLeft')">⬅️</button>
                             <button type="button" onclick="formatText('justifyCenter')">🔼</button>
                             <button type="button" onclick="formatText('justifyRight')">➡️</button>
-
                             <div class="color-picker-wrapper">
                                 <span style="font-size: 11px;">Цвет:</span>
                                 <input type="color" onchange="formatText('foreColor', this.value)" value="#ffffff">
@@ -157,12 +140,10 @@
                                 <span style="font-size: 11px;">Фон:</span>
                                 <input type="color" onchange="formatText('hiliteColor', this.value)" value="#12171f">
                             </div>
-
                             <button type="button" onclick="formatText('insertUnorderedList')">• Список</button>
                             <button type="button" onclick="formatText('insertOrderedList')">1. Список</button>
                             <button type="button" onclick="formatText('removeFormat')" style="color: #ff4b4b;">🧹 Сброс</button>
                         </div>
-
                         <div id="editor-rich-content" contenteditable="true" style="min-height: 200px; background: #12171f; border: 1px solid #334155; padding: 15px; border-radius: 6px; color: #fff;"></div>
                         
                         <button class="btn-primary" onclick="saveTopicContent()" style="background: #10b981; max-width: 200px; margin-top: 10px;">💾 Сохранить изменения</button>
@@ -170,14 +151,12 @@
                 </div>
             </div>
         </div>
-
         <!-- ЭКРАН 6: РЕГИСТРАЦИЯ -->
         <div id="screen-register" class="screen hidden" style="padding: 20px; max-width: 400px; margin: 0 auto;">
             <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="color: #fff;">Регистрация</h2>
                 <p style="color: #8a99ad;">Создайте аккаунт, чтобы начать общение</p>
             </div>
-
             <div style="display: flex; flex-direction: column; gap: 15px;">
                 <input type="text" id="reg-username" placeholder="Nick_Name (например: Ivan_Ivanov)" 
                        style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
@@ -195,7 +174,6 @@
                 </button>
             </div>
         </div>
-
         <!-- ЭКРАН 7: АВТОРИЗАЦИЯ -->
         <div id="screen-login" class="screen hidden">
             <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
@@ -208,7 +186,6 @@
                     Забыли пароль?
                 </span>
             </div>
-
             <div id="reset-password-block" class="form-group hidden" style="max-width: 380px; margin: 20px auto 0; padding: 15px; background: #1e2530; border-radius: 8px; border: 1px solid rgba(59,130,246,0.4); box-shadow: 0 0 15px rgba(59,130,246,0.15);">
                 <h3 style="font-size: 16px; margin-bottom: 10px; text-align: center;">Восстановление доступа</h3>
                 <p style="font-size: 13px; color: #a0aab8; margin-bottom: 10px; text-align: center;">На вашу почту придет ссылка для изменения пароля.</p>
@@ -219,7 +196,6 @@
                 </div>
             </div>
         </div>
-
         <!-- ЭКРАН 8: НАСТРОЙКИ СВОЕГО ПРОФИЛЯ -->
         <div id="screen-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="profile-banner-preview">
@@ -251,7 +227,6 @@
                 </div>
             </div>
         </div>
-
         <!-- ЭКРАН 9: ПУБЛИЧНЫЙ ПРОФИЛЬ + СТЕНА -->
         <div id="screen-public-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="public-banner">
@@ -269,7 +244,6 @@
                 </button>
                 <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-left: 10px;">На главную</button>
             </div>
-
             <div style="margin-top: 30px; padding: 0 20px;">
                 <h3 class="page-title" style="font-size: 16px;">Стена пользователя</h3>
                 
@@ -277,11 +251,9 @@
                     <textarea id="new-profile-comment" placeholder="Написать что-нибудь на стене..." rows="2" style="flex-grow: 1; background: #12171f; color:#fff; border: 1px solid #334155; border-radius:6px; padding:10px; resize:none;"></textarea>
                     <button class="btn-primary" onclick="sendProfileComment()" style="height: fit-content; align-self: flex-end;">Отправить</button>
                 </div>
-
                 <div id="profile-comments-list" class="sections-list" style="gap: 10px;"></div>
             </div>
         </div>
-
         <!-- ЭКРАН 10: АДМИН-ПАНЕЛЬ -->
         <div id="screen-admin" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -292,12 +264,9 @@
             <div style="margin-bottom: 20px;">
                 <input type="text" id="admin-search-user" placeholder="🔍 Поиск пользователя по никнейму..." oninput="filterAdminUsers()" style="width: 100%; max-width: 400px;">
             </div>
-
             <div id="admin-users-list" class="admin-list-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
         </div>
-
     </main>
-
     <script src="app.js"></script>
 </body>
 </html>
