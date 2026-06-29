@@ -159,6 +159,9 @@ function openProfileSettings() {
     if (bioInput) bioInput.value = currentUserData.bio || "";
 }
 
+// ==========================================
+// 1. ИСПРАВЛЕННОЕ СОХРАНЕНИЕ ПРОФИЛЯ (БЕЗ CORS)
+// ==========================================
 async function saveProfileSettings() {
     const nicknameInput = document.getElementById('nickname') || document.getElementById('edit-username') || document.querySelector('input[placeholder*="Ник"]');
     const btnSave = document.getElementById('btnSave') || document.getElementById('btn-save-profile') || document.querySelector('button[onclick*="saveProfileSettings"]');
@@ -169,7 +172,6 @@ async function saveProfileSettings() {
     }
 
     const nickname = nicknameInput.value.trim();
-
     if (!nickname || nickname.length <= 3) {
         alert("Никнейм должен быть более 3 символов");
         return; 
@@ -180,16 +182,12 @@ async function saveProfileSettings() {
         btnSave.disabled = true;
     }
 
-    // Хелпер: переводим файл в Base64 строку (Железобетонный обход CORS)
-    const fileToBase64 = (file) => {
+    // Хелпер для чтения файла в формат DataURL
+    const fileToDataURL = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => {
-                // Извлекаем чистую строку base64 без мета-префикса
-                const base64String = reader.result.split(',')[1];
-                resolve(base64String);
-            };
+            reader.onload = () => resolve(reader.result);
             reader.onerror = (error) => reject(error);
         });
     };
@@ -205,33 +203,31 @@ async function saveProfileSettings() {
         let bannerUrl = (currentUserData && currentUserData.banner) || "";
         const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
-        // ЗАГРУЗКА АВАТАРКИ ЧЕРЕЗ PUT_STRING (БЕЗ CORS)
+        // Загрузка аватарки через data_url string
         if (avatarFile) {
             if (btnSave) btnSave.innerText = "⏳ Загрузка аватарки...";
             const fileName = `${uid}_${Date.now()}`;
             const avatarRef = storage.ref().child('avatars').child(fileName);
             
-            const base64String = await fileToBase64(avatarFile);
-            
-            // putString со спецификатором 'base64' не триггерит CORS preflight блокировки
-            const snapshot = await avatarRef.putString(base64String, 'base64', { contentType: avatarFile.type });
+            const dataURL = await fileToDataURL(avatarFile);
+            // Формат data_url содержит и тип, и данные. Идеально обходит CORS preflight.
+            const snapshot = await avatarRef.putString(dataURL, 'data_url');
             avatarUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // ЗАГРУЗКА БАННЕРА ЧЕРЕЗ PUT_STRING (БЕЗ CORS)
+        // Загрузка баннера через data_url string
         if (bannerFile) {
             if (btnSave) btnSave.innerText = "⏳ Загрузка баннера...";
             const fileName = `${uid}_${Date.now()}`;
             const bannerRef = storage.ref().child('banners').child(fileName);
             
-            const base64String = await fileToBase64(bannerFile);
-            
-            const snapshot = await bannerRef.putString(base64String, 'base64', { contentType: bannerFile.type });
+            const dataURL = await fileToDataURL(bannerFile);
+            const snapshot = await bannerRef.putString(dataURL, 'data_url');
             bannerUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // ЗАПИСЬ ОБНОВЛЕНИЙ В REALTIME DATABASE
-        if (btnSave) btnSave.innerText = "⏳ Обновление базы данных...";
+        // Обновление в Realtime Database
+        if (btnSave) btnSave.innerText = "⏳ Запись в БД...";
         await db.ref('users/' + uid).update({
             username: nickname, 
             avatar: avatarUrl,
@@ -243,8 +239,8 @@ async function saveProfileSettings() {
         location.reload(); 
 
     } catch (error) {
-        console.error("Ошибка при сохранении:", error);
-        alert("Не удалось сохранить: " + error.message);
+        console.error("Ошибка сохранения профиля:", error);
+        alert("Не удалось сохранить изменения: " + error.message);
     } finally {
         if (btnSave) {
             btnSave.innerText = "Сохранить изменения";
