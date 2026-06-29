@@ -25,6 +25,7 @@ let selectedCategoryId = "";
 let selectedFactionId = ""; 
 let base64Avatar = ""; 
 let base64Banner = "";
+let isGlobalInfoZone = false; 
 
 // СЛУШАТЕЛЬ АВТОРИЗАЦИИ
 auth.onAuthStateChanged(user => {
@@ -72,17 +73,15 @@ function updateAdminButtonsVisibility() {
     const btnCreateFaction = document.getElementById('btn-show-create-faction');
     const btnCreateTopic = document.getElementById('btn-show-create-topic');
     
-    if (btnCreateFaction) { if(isLeader) btnCreateFaction.classList.remove('hidden'); else btnCreateFaction.classList.add('hidden'); }
+    if (btnCreateFaction) { if(isLeader && !isGlobalInfoZone) btnCreateFaction.classList.remove('hidden'); else btnCreateFaction.classList.add('hidden'); }
     if (btnCreateTopic) { if(isLeader) btnCreateTopic.classList.remove('hidden'); else btnCreateTopic.classList.add('hidden'); }
 }
 
-// ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ (ИСПРАВЛЕНО)
+// ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     const target = document.getElementById(screenId);
-    if (target) {
-        target.classList.remove('hidden');
-    }
+    if (target) target.classList.remove('hidden');
 }
 
 // ПРОФИЛЬ
@@ -111,12 +110,30 @@ function saveProfileChanges() {
     });
 }
 
-// ЗАГРУЗКА СЕРВЕРОВ
+// ЗАГРУЗКА ГЛАВНОЙ СТРАНИЦЫ (СЕРВЕРЫ + ГЛОБАЛЬНЫЕ ВКЛАДКИ)
 function loadServers() {
-    const div = document.getElementById('servers-list');
-    if (!div) return;
+    const infoDiv = document.getElementById('info-sections-list');
+    const serversDiv = document.getElementById('servers-list');
+    
+    if (infoDiv) {
+        const infoCats = [
+            { id: "rules", name: "📜 Правила проекта", desc: "Общие правила сервера, регламенты и положения для игроков" },
+            { id: "laws", name: "⚖️ Законодательство", desc: "Конституция, кодексы, законы и нормативно-правовые акты" }
+        ];
+        infoDiv.innerHTML = "";
+        infoCats.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'forum-category-item';
+            item.style.borderLeft = "4px solid #ff9f43"; 
+            item.onclick = () => openFactionTopics(c.id, c.name, "info");
+            item.innerHTML = `<h3>${c.name}</h3><p>${c.desc}</p>`;
+            infoDiv.appendChild(item);
+        });
+    }
+
+    if (!serversDiv) return;
     db.ref('servers').on('value', snap => {
-        div.innerHTML = '';
+        serversDiv.innerHTML = '';
         let servers = snap.val();
         if (!servers) {
             servers = { "moscow": { name: "Москва LIVE", hidden: false } };
@@ -133,7 +150,7 @@ function loadServers() {
                 btn = `<button class="btn-admin-action" onclick="toggleHideServer('${id}', ${s.hidden || false}); event.stopPropagation();">${s.hidden ? 'Показать' : 'Скрыть'}</button>`;
             }
             card.innerHTML = `<div class="server-clickable-area" onclick="openServerCategories('${id}', '${s.name || id}', '🏰')"><h3>🏰 ${s.name || id}</h3><p>Перейти к разделам</p></div><div>${btn}</div>`;
-            div.appendChild(card);
+            serversDiv.appendChild(card);
         });
     });
 }
@@ -159,9 +176,10 @@ function openServerCategories(id, name, emoji) {
     });
 }
 
-// ИНИЦИАЛИЗАЦИЯ И СИНХРОНИЗАЦИЯ СТРОГО ПО ВАШЕМУ СПИСКУ
+// СПИСОК ОРГАНИЗАЦИЙ С ЗАЩИТОЙ ОТ ДУБЛЕЙ
 function openCategoryFactions(catId, catName) {
     selectedCategoryId = catId;
+    isGlobalInfoZone = false;
     showScreen('screen-factions');
     document.getElementById('create-faction-form').classList.add('hidden');
     if(document.getElementById('current-category-title')) document.getElementById('current-category-title').innerText = catName;
@@ -170,34 +188,34 @@ function openCategoryFactions(catId, catName) {
     updateAdminButtonsVisibility();
     const ref = db.ref(`factions/${selectedServerId}/${selectedCategoryId}`);
     
-    // Проверка существования ветки строго один раз через once
     ref.once('value', snap => {
         if (!snap.exists() && catId === "gov") {
             const defaultGovList = {
-                "fact_1": { name: "Правительство" },
-                "fact_2": { name: "Прокуратура" },
-                "fact_3": { name: "Следственный комитет" },
-                "fact_4": { name: "Судебная власть" },
-                "fact_5": { name: "Федеральная служба охраны" },
-                "fact_6": { name: "Росгвардия" },
-                "fact_7": { name: "Армия" },
-                "fact_8": { name: "Центр организации дорожного движение" },
-                "fact_9": { name: "МВД" },
-                "fact_10": { name: "ГИБДД" },
-                "fact_11": { name: "Центральная городская больница 7" },
-                "fact_12": { name: "Центральная городская больница 3" },
-                "fact_13": { name: "Федеральная служба исполнения наказаний" },
-                "fact_14": { name: "Москва LIVE" },
-                "fact_15": { name: "Федеральная служба безопасности" }
+                "fact_1": { name: "Правительство", icon: "🏛️" },
+                "fact_2": { name: "Прокуратура", icon: "⚖️" },
+                "fact_3": { name: "Следственный комитет", icon: "🔍" },
+                "fact_4": { name: "Судебная власть", icon: "🔨" },
+                "fact_5": { name: "Федеральная служба охраны", icon: "🛡️" },
+                "fact_6": { name: "Росгвардия", icon: "💂" },
+                "fact_7": { name: "Армия", icon: "🪖" },
+                "fact_8": { name: "Центр организации дорожного движение", icon: "🟢" },
+                "fact_9": { name: "МВД", icon: "🚓" },
+                "fact_10": { name: "ГИБДД", icon: "🚨" },
+                "fact_11": { name: "Центральная городская больница 7", icon: "🏥" },
+                "fact_12": { name: "Центральная городская больница 3", icon: "🏥" },
+                "fact_13": { name: "Федеральная служба исполнения наказаний", icon: "⛓️" },
+                "fact_14": { name: "Москва LIVE", icon: "📻" },
+                "fact_15": { name: "Федеральная служба безопасности", icon: "🦅" }
             };
             ref.set(defaultGovList);
         } else if (!snap.exists() && catId === "crime") {
-            ref.set({ "ops": { name: "Базовая ОПГ" } });
+            ref.set({ "ops": { name: "Базовая ОПГ", icon: "🥷" } });
         }
     });
 
     ref.on('value', snap => {
         const div = document.getElementById('factions-list');
+        if (!div) return;
         div.innerHTML = "";
         const data = snap.val();
         if (data) {
@@ -205,30 +223,45 @@ function openCategoryFactions(catId, catName) {
                 const item = document.createElement('div');
                 item.className = 'forum-category-item';
                 item.style.borderLeft = "4px solid #3b82f6";
-                item.onclick = () => openFactionTopics(fId, data[fId].name);
-                item.innerHTML = `<h3>🏢 ${data[fId].name}</h3><p>Нажмите для просмотра тем</p>`;
+                item.onclick = () => openFactionTopics(fId, data[fId].name, "server");
+                const icon = data[fId].icon || "🏢";
+                item.innerHTML = `<h3>${icon} ${data[fId].name}</h3><p>Нажмите для просмотра тем</p>`;
                 div.appendChild(item);
             });
         }
     });
 }
 
-function openFactionTopics(factionId, factionName) {
+// ОТКРЫТИЕ ТЕМ (РАБОТАЕТ И ДЛЯ СЕРВЕРОВ, И ДЛЯ ПРАВИЛ/ЗАКОНОВ)
+function openFactionTopics(factionId, factionName, context = "server") {
     selectedFactionId = factionId;
+    isGlobalInfoZone = (context === "info");
+    
     showScreen('screen-topics');
-    document.getElementById('create-topic-form').classList.add('hidden');
+    if(document.getElementById('create-topic-form')) document.getElementById('create-topic-form').classList.add('hidden');
     if(document.getElementById('current-faction-title')) document.getElementById('current-faction-title').innerText = factionName;
-    if(document.getElementById('btn-back-to-factions')) document.getElementById('btn-back-to-factions').onclick = () => showScreen('screen-factions');
+    
+    const btnBack = document.getElementById('btn-back-to-factions');
+    if (btnBack) {
+        btnBack.onclick = () => {
+            if (isGlobalInfoZone) showScreen('screen-forum');
+            else showScreen('screen-factions');
+        };
+    }
 
     updateAdminButtonsVisibility();
     const div = document.getElementById('topics-list');
     if (!div) return;
 
-    db.ref(`topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`).on('value', snap => {
+    const dbPath = isGlobalInfoZone 
+        ? `global_topics/${selectedFactionId}` 
+        : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`;
+
+    db.ref(dbPath).on('value', snap => {
         div.innerHTML = "";
         const topics = snap.val();
         if (!topics) {
-            div.innerHTML = "<p style='color:#a0aab8; text-align:center; padding: 20px;'>В этой организации еще нет тем.</p>";
+            div.innerHTML = "<p style='color:#a0aab8; text-align:center; padding: 20px;'>В этом разделе еще нет тем.</p>";
             return;
         }
         Object.values(topics).forEach(topicName => {
@@ -246,11 +279,11 @@ function toggleFactionForm() { document.getElementById('create-faction-form').cl
 function toggleTopicForm() { document.getElementById('create-topic-form').classList.toggle('hidden'); }
 
 function createNewFaction() {
-    if (!currentUserData || currentUserData.role !== "Руководство проекта") return;
+    if (!currentUserData || currentUserData.role !== "Руководство проекта" || isGlobalInfoZone) return;
     const name = document.getElementById('new-faction-name').value.trim();
     if (!name) return;
     const fId = "fact_" + Date.now();
-    db.ref(`factions/${selectedServerId}/${selectedCategoryId}/${fId}`).set({ name: name }).then(() => {
+    db.ref(`factions/${selectedServerId}/${selectedCategoryId}/${fId}`).set({ name: name, icon: "🏢" }).then(() => {
         document.getElementById('new-faction-name').value = "";
         document.getElementById('create-faction-form').classList.add('hidden');
     });
@@ -260,9 +293,14 @@ function createNewTopic() {
     if (!currentUserData || currentUserData.role !== "Руководство проекта") return;
     const name = document.getElementById('new-topic-name').value.trim();
     if (!name) return;
-    db.ref(`topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`).push(name).then(() => {
+
+    const dbPath = isGlobalInfoZone 
+        ? `global_topics/${selectedFactionId}` 
+        : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`;
+
+    db.ref(dbPath).push(name).then(() => {
         document.getElementById('new-topic-name').value = "";
-        document.getElementById('create-topic-form').classList.add('hidden');
+        if(document.getElementById('create-topic-form')) document.getElementById('create-topic-form').classList.add('hidden');
     });
 }
 
@@ -292,7 +330,6 @@ function openAdminPanel() {
 
 function updateUserRole(uid, r) { db.ref('users/' + uid).update({ role: r }); }
 
-// ИСПРАВЛЕННЫЙ ВХОД С ОБРАБОТКОЙ ОШИБОК
 function loginUser() {
     const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-password').value;
@@ -301,14 +338,9 @@ function loginUser() {
         alert("Пожалуйста, заполните все поля!");
         return;
     }
-
     auth.signInWithEmailAndPassword(email, pass)
-        .then(() => { 
-            showScreen('screen-forum'); 
-        })
-        .catch(err => { 
-            alert("Ошибка авторизации: " + err.message); 
-        });
+        .then(() => { showScreen('screen-forum'); })
+        .catch(err => { alert("Ошибка авторизации: " + err.message); });
 }
 
 function logout() { auth.signOut().then(() => { location.reload(); }); }
