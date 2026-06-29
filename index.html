@@ -21,12 +21,13 @@
             <button id="btn-admin-panel" class="nav-btn-modern btn-admin-accent hidden" onclick="openAdminPanel()">👑 Админ-панель</button>
         </nav>
         <div class="auth-zone">
-            <!-- КНОПКИ ДЛЯ ГОСТЕЙ (Скрываются целиком при входе в аккаунт) -->
+            <!-- Блок кнопок для гостей -->
             <div id="auth-buttons" style="display: flex; align-items: center; gap: 12px;">
                 <button onclick="showScreen('screen-login')" style="background: transparent; color: #a0aab8; border: 1px solid #3a4454; padding: 8px 18px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">Войти</button>
                 <button onclick="showScreen('screen-register')" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; border: none; padding: 9px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.2s ease;">Регистрация</button>
             </div>
             
+            <!-- Блок авторизованного пользователя -->
             <div id="user-menu" class="user-profile-menu hidden" onclick="if(auth.currentUser) openPublicProfile(auth.currentUser.uid)">
                 <img id="header-avatar" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Аватар" class="profile-avatar-mini">
                 <span id="header-username" class="profile-username-text">Загрузка...</span>
@@ -90,7 +91,7 @@
                 <!-- Описание или текст текущей темы -->
                 <div id="topic-view-content" class="topic-content-display" style="margin-bottom: 20px;">Текст публикации загружается...</div>
                 
-                <!-- Блок вложенных подтем (если они есть в этой теме) -->
+                <!-- Блок вложенных подтем -->
                 <div id="subtopics-block" class="hidden" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
                     <h3 style="color: #fff; margin-bottom: 15px; font-size: 16px;">📁 Вложенные подразделы / подтемы:</h3>
                     <div id="subtopics-list" class="sections-list"></div>
