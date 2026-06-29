@@ -20,10 +20,10 @@ const ROLES = [
     "Пользователь", "Заместитель главного администратора форума", "Главный администратор форума",
     "Заместитель главного администратора", "Главный администратор", "Специальный администратор", "Руководство проекта"
 ];
-// Список ролей, которые считаются Администрацией форума и имеют доступ к админ-панели и выдаче ролей
+// Список ролей, которые считаются Администрацией форума
 const ADMIN_PANEL_ROLES = ["Руководство проекта", "Специальный администратор", "Главный администратор", "Заместитель главного администратора"];
 
-// Предустановленный список фракций (Москва LIVE теперь здесь как фракция)
+// Предустановленный список фракций
 const LEADER_FACTIONS_LIST = [
     "Правительства", "ГИБДД", "ЦГБ 7", "ЦГБ 3", "ФСИН", 
     "Москва LIVE", "ФСБ", "Прокуратуры", "следственного комитета", 
@@ -32,35 +32,43 @@ const LEADER_FACTIONS_LIST = [
 
 let currentUserData = null;
 let allUsersCache = {}; 
-let serversCache = {}; // Кэш для хранения списка серверов (Москва, Сочи, Санкт-Петербург) из БД
+let serversCache = {}; 
+
+// Глобальные переменные для точного отслеживания где находится пользователь
 let selectedServerId = ""; 
+let selectedServerName = ""; // Сюда сохраняем чистый текст сервера (напр. "Москва")
 let selectedCategoryId = "";
 let selectedFactionId = ""; 
+let selectedFactionName = ""; // Сюда сохраняем чистый текст фракции (напр. "Правительства")
 let selectedTopicId = ""; 
+
 let base64Avatar = ""; 
 let base64Banner = "";
 let isGlobalInfoZone = false; 
 let viewedProfileUid = "";
 
 // ==========================================
-// 1.5 УЛУЧШЕННАЯ СИСТЕМА ПРОВЕРКИ ПРАВ ЛИДЕРА
+// 1.5 ИСПРАВЛЕННАЯ ПРОВЕРКА ПРАВ ЛИДЕРА КОРРЕКТНОЙ ФРАКЦИИ
 // ==========================================
 function checkModerationRights() {
     if (!currentUserData) return false;
     
-    // Руководство проекта имеет absolute доступ
+    // Руководство проекта может всё и везде
     if (currentUserData.role === "Руководство проекта") return true;
 
-    const currentServerName = document.getElementById('current-server-title') ? document.getElementById('current-server-title').innerText.replace(/[^а-яА-ЯёЁa-zA-Z0-9 ]/g, '').trim().toLowerCase() : "";
-    const currentFactionName = document.getElementById('current-faction-title') ? document.getElementById('current-faction-title').innerText.replace(/[^а-яА-ЯёЁa-zA-Z0-9 ]/g, '').trim().toLowerCase() : "";
+    // В глобальных правилах и законах лидеры ничего редактировать не могут
+    if (isGlobalInfoZone) return false;
 
-    if (!currentServerName || !currentFactionName) return false;
+    // Если данные о текущей фракции или сервере не подтянулись, блокируем
+    if (!selectedServerName || !selectedFactionName) return false;
 
     const userRoleLower = (currentUserData.role || "").toLowerCase();
+    const serverLower = selectedServerName.toLowerCase().trim();
+    const factionLower = selectedFactionName.toLowerCase().trim();
 
-    // Проверяем, содержит ли роль игрока одновременно сервер, слово "лидер" и фракцию
-    if (userRoleLower.includes(currentServerName) && userRoleLower.includes("лидер") && 
-        (userRoleLower.includes(currentFactionName) || currentFactionName.includes(userRoleLower.replace(/.*лидер\s+/g, '')))) {
+    // Проверяем строгое совпадение: роль лидера должна содержать "москва", "лидер" и "правительства"
+    // Пример роли игрока: "Москва Лидер Правительства"
+    if (userRoleLower.includes(serverLower) && userRoleLower.includes("лидер") && userRoleLower.includes(factionLower)) {
         return true;
     }
 
@@ -128,6 +136,7 @@ function updateAdminButtonsVisibility() {
         else btnCreateFaction.classList.add('hidden'); 
     }
     
+    // Кнопка создания темы видна Руководству ИЛИ лидеру этой конкретной фракции
     if (btnCreateTopic) { 
         if(isProjectAdmin || hasFactionRights) btnCreateTopic.classList.remove('hidden'); 
         else btnCreateTopic.classList.add('hidden'); 
@@ -185,7 +194,11 @@ function loadServers() {
             const item = document.createElement('div');
             item.className = 'forum-category-item';
             item.style.borderLeft = "4px solid #ff9f43"; 
-            item.onclick = () => openFactionTopics(c.id, c.name, "info");
+            item.onclick = () => {
+                selectedServerName = ""; 
+                selectedFactionName = "";
+                openFactionTopics(c.id, c.name, "info");
+            };
             item.innerHTML = `<div class="item-text-area"><h3>${c.name}</h3><p>${c.desc}</p></div>`;
             infoDiv.appendChild(item);
         });
@@ -196,7 +209,6 @@ function loadServers() {
         serversDiv.innerHTML = '';
         let servers = snap.val();
         if (!servers) {
-            // Инициализация серверов, если база пуста
             servers = { 
                 "moscow": { name: "Москва", hidden: false },
                 "sochi": { name: "Сочи", hidden: false },
@@ -224,6 +236,7 @@ function loadServers() {
 
 function openServerCategories(id, name, emoji) {
     selectedServerId = id;
+    selectedServerName = name; // Запоминаем имя сервера (напр. "Москва")
     showScreen('screen-categories');
     if(document.getElementById('current-server-title')) document.getElementById('current-server-title').innerText = `${emoji} ${name}`;
     const div = document.getElementById('categories-list');
@@ -294,7 +307,9 @@ function deleteFaction(fId) {
 // ==========================================
 function openFactionTopics(factionId, factionName, context = "server") {
     selectedFactionId = factionId;
+    selectedFactionName = factionName; // Запоминаем имя фракции (напр. "Правительства")
     isGlobalInfoZone = (context === "info");
+    
     showScreen('screen-topics');
     if(document.getElementById('create-topic-form')) document.getElementById('create-topic-form').classList.add('hidden');
     if(document.getElementById('current-faction-title')) document.getElementById('current-faction-title').innerText = factionName;
@@ -320,7 +335,7 @@ function openFactionTopics(factionId, factionName, context = "server") {
             const item = document.createElement('div');
             item.className = 'forum-category-item';
             item.style.borderLeft = "4px solid #ff4b4b";
-            item.onclick = () => viewSelectedTopic(tId, topic.title);
+            item.onclick = () => viewSelectedTopic(tId, topic.title || topic);
             
             let deleteBtn = isLeader ? `<button class="btn-delete-item" onclick="deleteTopic('${tId}'); event.stopPropagation();">❌ Удалить</button>` : '';
             
@@ -340,9 +355,10 @@ function viewSelectedTopic(tId, tTitle) {
     showScreen('screen-view-topic');
     
     if(document.getElementById('topic-view-title')) document.getElementById('topic-view-title').innerText = tTitle;
-    if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = "Загрузка контента публикации...";
+    if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = "Загрузка контента...</p>";
     if(document.getElementById('topic-editor-inputs')) document.getElementById('topic-editor-inputs').classList.add('hidden');
     
+    // ПРОВЕРКА ПРАВ: Теперь она точно знает название фракции и сервера из глобальных переменных!
     const hasAccess = checkModerationRights();
     const adminBlock = document.getElementById('topic-admin-editor-block');
     if (adminBlock) { 
@@ -478,20 +494,8 @@ function toggleProfileLike() {
     ref.once('value', snap => { if (snap.exists()) ref.remove(); else ref.set(true); });
 }
 
-function sendProfileComment() {
-    if (!auth.currentUser || !currentUserData) return;
-    if (currentUserData.isBanned) return;
-    if (currentUserData.isMuted) { alert("Вы замучены!"); return; }
-    const input = document.getElementById('new-profile-comment'); const text = input.value.trim(); if (!text) return;
-    const dateStr = new Date().toLocaleString("ru-RU", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' });
-    
-    db.ref(`profile_comments/${viewedProfileUid}`).push({
-        authorUid: auth.currentUser.uid, authorName: currentUserData.username || "Игрок", text: text, date: dateStr
-    }).then(() => { input.value = ""; });
-}
-
 // ==========================================
-// 7. ЗАЩИЩЕННАЯ АДМИНКА С РАЗДЕЛЬНЫМИ СЕРВЕРАМИ И ФРАКЦИЯМИ
+// 7. ПАНЕЛЬ АДМИНИСТРАТОРА
 // ==========================================
 function openAdminPanel() {
     showScreen('screen-admin');
@@ -516,7 +520,6 @@ function renderAdminUsers(usersData) {
             roleOptions += `<option value="${u.role}" selected>${u.role}</option>`;
         }
 
-        // Динамический список серверов (из БД или статический дефолт)
         let serverOptions = Object.keys(serversCache).map(id => {
             const name = serversCache[id].name || id;
             return `<option value="${name}">${name}</option>`;
@@ -581,14 +584,11 @@ function assignSelectLeaderRole(uid) {
         alert("У вас нет прав администратора форума для выдачи ролей!");
         return;
     }
-
     const serverSelect = document.getElementById(`leader-server-${uid}`);
     const factionSelect = document.getElementById(`leader-faction-${uid}`);
     if (!serverSelect || !factionSelect) return;
 
-    // Генерирует строку вида "Сочи Лидер Москва LIVE" или "Москва Лидер ГИБДД"
     const fullLeaderRole = `${serverSelect.value} Лидер ${factionSelect.value}`;
-    
     updateUserRole(uid, fullLeaderRole);
     alert(`Игроку успешно присвоен статус лидерства:\n${fullLeaderRole}`);
     openAdminPanel();
@@ -599,7 +599,6 @@ function assignCustomLeaderRole(uid) {
         alert("У вас нет прав администратора форума для выдачи ролей!");
         return;
     }
-
     const input = document.getElementById(`custom-role-${uid}`);
     if (!input) return;
     const value = input.value.trim();
@@ -644,16 +643,6 @@ function loginUser() {
     const email = document.getElementById('login-email').value.trim(); const pass = document.getElementById('login-password').value;
     if(!email || !pass) return;
     auth.signInWithEmailAndPassword(email, pass).then(() => { showScreen('screen-forum'); }).catch(err => alert(err.message));
-}
-
-function toggleResetForm(show) {
-    const block = document.getElementById('reset-password-block'); if (!block) return;
-    if (show) block.classList.remove('hidden'); else block.classList.add('hidden');
-}
-
-function sendPasswordReset() {
-    const email = document.getElementById('reset-email').value.trim(); if (!email) return;
-    auth.sendPasswordResetEmail(email).then(() => { alert("Ссылка на почте!"); toggleResetForm(false); }).catch(err => alert(err.message));
 }
 
 function logout() { auth.signOut().then(() => { location.reload(); }); }
