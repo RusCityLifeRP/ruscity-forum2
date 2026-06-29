@@ -11,6 +11,7 @@
 </head>
 <body>
 
+    <!-- Шапка сайта -->
     <header class="forum-header">
         <div class="header-logo" onclick="showScreen('screen-forum')">
             <span class="logo-main">RusCity</span><span class="logo-sub">Life RP</span>
@@ -26,7 +27,7 @@
             <div id="auth-buttons">
                 <button onclick="showScreen('screen-login')" class="btn-primary">Войти</button>
             </div>
-            <div id="user-menu" class="user-profile-menu hidden" onclick="showScreen('screen-profile')">
+            <div id="user-menu" class="user-profile-menu hidden" onclick="if(auth.currentUser) openPublicProfile(auth.currentUser.uid)">
                 <img id="header-avatar" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Аватар" class="profile-avatar-mini">
                 <span id="header-username" class="profile-username-text">Загрузка...</span>
                 <button onclick="logout(); event.stopPropagation();" class="btn-logout">Выйти</button>
@@ -34,8 +35,10 @@
         </div>
     </header>
 
+    <!-- Основной контейнер -->
     <main class="forum-container">
         
+        <!-- ЭКРАН 1: Список серверов -->
         <div id="screen-forum" class="screen">
             <h2 class="page-title">Важная информация</h2>
             <div id="info-sections-list" class="sections-list" style="margin-bottom: 40px;"></div>
@@ -44,12 +47,14 @@
             <div id="servers-list" class="sections-list"></div>
         </div>
 
+        <!-- ЭКРАН 2: Категории сервера -->
         <div id="screen-categories" class="screen hidden">
             <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
             <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
             <div id="categories-list" class="sections-list"></div>
         </div>
 
+        <!-- ЭКРАН 3: Список фракций -->
         <div id="screen-factions" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
@@ -67,6 +72,7 @@
             <div id="factions-list" class="sections-list"></div>
         </div>
 
+        <!-- ЭКРАН 4: Темы -->
         <div id="screen-topics" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-factions">← Назад</button>
@@ -84,6 +90,7 @@
             <div id="topics-list" class="sections-list"></div>
         </div>
 
+        <!-- ЭКРАН 5: Вход и Сброс пароля -->
         <div id="screen-login" class="screen hidden">
             <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
             <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
@@ -107,6 +114,7 @@
             </div>
         </div>
 
+        <!-- ЭКРАН 6: Настройки собственного профиля -->
         <div id="screen-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="profile-banner-preview">
                 <div class="profile-preview-avatar-container">
@@ -131,26 +139,55 @@
                     </div>
                 </div>
                 
-                <div class="profile-editor-actions">
+                <div class="profile-editor-actions" style="margin-top: 15px;">
                     <button class="btn-primary" onclick="saveProfileChanges()" style="width: 100%; margin-bottom: 10px;">💾 Сохранить изменения</button>
                     <button class="btn-secondary" onclick="showScreen('screen-forum')" style="width: 100%;">Отмена</button>
                 </div>
             </div>
         </div>
 
-                <!-- ЭКРАН 7: Админка (Модерация и Наказания) -->
+        <!-- ЭКРАН 7: Публичный профиль игрока (Стена, лайки, комменты) -->
+        <div id="screen-public-profile" class="screen hidden profile-editor-card">
+            <div class="profile-preview-banner" id="public-banner">
+                <div class="profile-preview-avatar-container">
+                    <img id="public-avatar" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Аватар">
+                </div>
+            </div>
+            
+            <div style="margin-top: 50px; text-align: center; padding: 0 20px;">
+                <h2 id="public-username" style="color: #fff; margin-bottom: 5px;">Никнейм</h2>
+                <div id="public-role" style="font-size: 14px; color: #3b82f6; font-weight: 600; margin-bottom: 15px;">Роль</div>
+                
+                <button id="btn-profile-like" class="btn-primary" onclick="toggleProfileLike()" style="background: #e11d48; box-shadow: 0 4px 10px rgba(225,29,72,0.3);">
+                    ❤️ Лайков: <span id="public-likes-count">0</span>
+                </button>
+                <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-left: 10px;">На главную</button>
+            </div>
+
+            <div style="margin-top: 30px; padding: 0 20px;">
+                <h3 class="page-title" style="font-size: 16px;">Стена пользователя</h3>
+                
+                <div id="profile-comment-form" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="new-profile-comment" placeholder="Написать что-нибудь на стене..." style="flex-grow: 1;">
+                    <button class="btn-primary" onclick="sendProfileComment()">Отправить</button>
+                </div>
+
+                <div id="profile-comments-list" class="sections-list" style="gap: 10px;"></div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН 8: Админка (Модерация и Наказания) -->
         <div id="screen-admin" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 class="page-title" style="margin: 0;">👑 Панель управления проектом</h2>
                 <button class="btn-secondary" onclick="showScreen('screen-forum')">← На главную</button>
             </div>
             
-            <!-- Живой поиск -->
             <div style="margin-bottom: 20px;">
                 <input type="text" id="admin-search-user" placeholder="🔍 Поиск пользователя по никнейму..." oninput="filterAdminUsers()" style="width: 100%; max-width: 400px;">
             </div>
 
-            <div id="admin-users-list" class="admin-list-container"></div>
+            <div id="admin-users-list" class="admin-list-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
         </div>
 
     </main>
