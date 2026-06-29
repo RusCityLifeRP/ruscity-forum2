@@ -142,7 +142,6 @@ db.ref(`topics/${currentServerId}/${sectionId}`).on('value', snapshot => {
         topicsList.appendChild(item);
     });
 });
-}
 
 function showTopicForm() { 
     document.getElementById('topic-form-block').classList.toggle('hidden'); 
