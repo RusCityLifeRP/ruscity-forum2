@@ -23,11 +23,23 @@ const ROLES = [
 // Список ролей, которые считаются Администрацией форума
 const ADMIN_PANEL_ROLES = ["Руководство проекта", "Специальный администратор", "Главный администратор", "Заместитель главного администратора"];
 
-// Предустановленный список фракций
+// Обновленный предустановленный список фракций под твои названия
 const LEADER_FACTIONS_LIST = [
-    "Правительства", "ГИБДД", "ЦГБ 7", "ЦГБ 3", "ФСИН", 
-    "Москва LIVE", "ФСБ", "Прокуратуры", "следственного комитета", 
-    "судебной власти", "ФСО", "Росгвардии", "Армии", "ЦОДД", "МВД"
+    "Правительство", 
+    "ГИБДД", 
+    "Центральная городская больница 7", 
+    "Центральная городская больница 3", 
+    "Федеральная служба исполнения наказаний", 
+    "Москва LIVE", 
+    "Федеральная служба безопасности", 
+    "Прокуратуры", 
+    "следственного комитета", 
+    "судебной власти", 
+    "Федеральная служба охраны", 
+    "Росгвардии", 
+    "Армии", 
+    "Центр организации дорожного движения", 
+    "МВД"
 ];
 
 let currentUserData = null;
@@ -36,10 +48,10 @@ let serversCache = {};
 
 // Глобальные переменные для точного отслеживания где находится пользователь
 let selectedServerId = ""; 
-let selectedServerName = ""; // Сюда сохраняем чистый текст сервера (напр. "Москва")
+let selectedServerName = ""; 
 let selectedCategoryId = "";
 let selectedFactionId = ""; 
-let selectedFactionName = ""; // Сюда сохраняем чистый текст фракции (напр. "Правительства")
+let selectedFactionName = ""; 
 let selectedTopicId = ""; 
 
 let base64Avatar = ""; 
@@ -48,7 +60,7 @@ let isGlobalInfoZone = false;
 let viewedProfileUid = "";
 
 // ==========================================
-// 1.5 ИСПРАВЛЕННАЯ ПРОВЕРКА ПРАВ ЛИДЕРА КОРРЕКТНОЙ ФРАКЦИИ
+// 1.5 ИСПРАВЛЕННАЯ ПРОВЕРКА ПРАВ (БЕЗ ЧУВСТВИТЕЛЬНОСТИ К РЕГИСТРУ)
 // ==========================================
 function checkModerationRights() {
     if (!currentUserData) return false;
@@ -62,12 +74,12 @@ function checkModerationRights() {
     // Если данные о текущей фракции или сервере не подтянулись, блокируем
     if (!selectedServerName || !selectedFactionName) return false;
 
-    const userRoleLower = (currentUserData.role || "").toLowerCase();
+    // Переводим абсолютно всё в нижний регистр и убираем лишние пробелы
+    const userRoleLower = (currentUserData.role || "").toLowerCase().trim();
     const serverLower = selectedServerName.toLowerCase().trim();
     const factionLower = selectedFactionName.toLowerCase().trim();
 
-    // Проверяем строгое совпадение: роль лидера должна содержать "москва", "лидер" и "правительства"
-    // Пример роли игрока: "Москва Лидер Правительства"
+    // Проверяем строгое совпадение по ключевым словам
     if (userRoleLower.includes(serverLower) && userRoleLower.includes("лидер") && userRoleLower.includes(factionLower)) {
         return true;
     }
@@ -136,7 +148,6 @@ function updateAdminButtonsVisibility() {
         else btnCreateFaction.classList.add('hidden'); 
     }
     
-    // Кнопка создания темы видна Руководству ИЛИ лидеру этой конкретной фракции
     if (btnCreateTopic) { 
         if(isProjectAdmin || hasFactionRights) btnCreateTopic.classList.remove('hidden'); 
         else btnCreateTopic.classList.add('hidden'); 
@@ -236,7 +247,7 @@ function loadServers() {
 
 function openServerCategories(id, name, emoji) {
     selectedServerId = id;
-    selectedServerName = name; // Запоминаем имя сервера (напр. "Москва")
+    selectedServerName = name; 
     showScreen('screen-categories');
     if(document.getElementById('current-server-title')) document.getElementById('current-server-title').innerText = `${emoji} ${name}`;
     const div = document.getElementById('categories-list');
@@ -282,7 +293,7 @@ function openCategoryFactions(catId, catName) {
             item.style.borderLeft = "4px solid #3b82f6";
             item.onclick = () => openFactionTopics(fId, data[fId].name, "server");
             
-            let deleteBtn = isLeader ? `<button class="btn-delete-item" onclick="deleteFaction('${fId}'); event.stopPropagation();">❌ Удалить</button>` : '';
+            let deleteBtn = isLeader ? `<button class="btn-delete-item" onclick="deleteFaction('${fId}'); event.stopPropagation();">❌ ...</button>` : '';
             
             item.innerHTML = `
                 <div class="item-text-area">
@@ -297,7 +308,7 @@ function openCategoryFactions(catId, catName) {
 }
 
 function deleteFaction(fId) {
-    if (!confirm("Вы уверены, что хотите безвозвратно удалить эту фракцию вместе со всеми темами?")) return;
+    if (!confirm("Вы уверены, что хотите безвозвратно удалить эту фракцию?")) return;
     db.ref(`factions/${selectedServerId}/${selectedCategoryId}/${fId}`).remove();
     db.ref(`topics/${selectedServerId}/${selectedCategoryId}/${fId}`).remove();
 }
@@ -307,7 +318,7 @@ function deleteFaction(fId) {
 // ==========================================
 function openFactionTopics(factionId, factionName, context = "server") {
     selectedFactionId = factionId;
-    selectedFactionName = factionName; // Запоминаем имя фракции (напр. "Правительства")
+    selectedFactionName = factionName; 
     isGlobalInfoZone = (context === "info");
     
     showScreen('screen-topics');
@@ -327,7 +338,7 @@ function openFactionTopics(factionId, factionName, context = "server") {
     db.ref(dbPath).on('value', snap => {
         div.innerHTML = "";
         const topics = snap.val();
-        if (!topics) { div.innerHTML = "<p style='color:#a0aab8; text-align:center; padding: 20px;'>В этой ветке пока нет ни одной темы...</p>"; return; }
+        if (!topics) { div.innerHTML = "<p style='color:#a0aab8; text-align:center; padding: 20px;'>В этой ветке пока нет тем.</p>"; return; }
         
         Object.keys(topics).forEach(tId => {
             const topic = topics[tId];
@@ -355,10 +366,9 @@ function viewSelectedTopic(tId, tTitle) {
     showScreen('screen-view-topic');
     
     if(document.getElementById('topic-view-title')) document.getElementById('topic-view-title').innerText = tTitle;
-    if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = "Загрузка контента...</p>";
+    if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = "Загрузка контента...";
     if(document.getElementById('topic-editor-inputs')) document.getElementById('topic-editor-inputs').classList.add('hidden');
     
-    // ПРОВЕРКА ПРАВ: Теперь она точно знает название фракции и сервера из глобальных переменных!
     const hasAccess = checkModerationRights();
     const adminBlock = document.getElementById('topic-admin-editor-block');
     if (adminBlock) { 
@@ -495,7 +505,7 @@ function toggleProfileLike() {
 }
 
 // ==========================================
-// 7. ПАНЕЛЬ АДМИНИСТРАТОРА
+// 7. ПАНЕЛЬ АДМИНИСТРАТОРА И ВЫДАЧА РОЛЕЙ
 // ==========================================
 function openAdminPanel() {
     showScreen('screen-admin');
@@ -539,7 +549,7 @@ function renderAdminUsers(usersData) {
             <div class="admin-card-header">
                 <div>
                     <strong class="clickable-profile-link" style="font-size:16px; color:#fff;" onclick="openPublicProfile('${uid}')">${u.username || 'Без имени'}</strong>
-                    <span style="font-size:12px; color:#8a99ad; margin-left:10px;">(Текущая роль: ${u.role || 'Пользователь'})</span>
+                    <span style="font-size:12px; color:#8a99ad; margin-left:10px;">(Роль: ${u.role || 'Пользователь'})</span>
                 </div>
                 ${statusBadge}
             </div>
@@ -594,6 +604,17 @@ function assignSelectLeaderRole(uid) {
     openAdminPanel();
 }
 
+// Поиск и фильтрация пользователей в админке
+function filterAdminUsers() {
+    const query = document.getElementById('admin-search-user').value.toLowerCase().trim();
+    if (!query) { renderAdminUsers(allUsersCache); return; }
+    const filtered = {};
+    Object.keys(allUsersCache).forEach(uid => {
+        if ((allUsersCache[uid].username || '').toLowerCase().includes(query)) filtered[uid] = allUsersCache[uid];
+    });
+    renderAdminUsers(filtered);
+}
+
 function assignCustomLeaderRole(uid) {
     if (!currentUserData || !ADMIN_PANEL_ROLES.includes(currentUserData.role)) {
         alert("У вас нет прав администратора форума для выдачи ролей!");
@@ -607,16 +628,6 @@ function assignCustomLeaderRole(uid) {
     updateUserRole(uid, value);
     alert(`Пользователю успешно выдана роль: ${value}`);
     openAdminPanel(); 
-}
-
-function filterAdminUsers() {
-    const query = document.getElementById('admin-search-user').value.toLowerCase().trim();
-    if (!query) { renderAdminUsers(allUsersCache); return; }
-    const filtered = {};
-    Object.keys(allUsersCache).forEach(uid => {
-        if ((allUsersCache[uid].username || '').toLowerCase().includes(query)) filtered[uid] = allUsersCache[uid];
-    });
-    renderAdminUsers(filtered);
 }
 
 function updateUserRole(uid, newRole) {
