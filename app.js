@@ -154,34 +154,76 @@ async function saveProfileSettings() {
     // 1. Находим кнопку сохранения
     const btnSave = document.getElementById('btnSave') || document.querySelector('button[onclick*="saveProfileSettings"]');
 
-    // 2. Ищем инпут по уникальным признакам (id, классу или тексту подсказки внутри)
-    const nicknameInput = 
-        document.getElementById('nickname') || 
-        document.getElementById('username') || 
-        document.querySelector('input[placeholder*="ник"]') || // Ищет инпут, где в подсказке есть слово "ник"
-        document.querySelector('input[placeholder*="Nick"]') || // Ищет инпут со словом "Nick"
-        document.querySelector('.profile-settings input[type="text"]') || // Ищет инпут внутри блока настроек
-        document.querySelectorAll('input[type="text"]')[0]; // Крайний случай — самый первый инпут
+    // 2. Находим инпут строго по ID, который теперь у нас есть
+    const nicknameInput = document.getElementById('nickname');
+    
+    // 3. Получаем значение ТОЛЬКО если инпут существует
+    let nickname = "";
+    if (nicknameInput) {
+        nickname = nicknameInput.value.trim();
+    } else {
+        console.error("Критическая ошибка: Инпут с id='nickname' не найден на этой странице!");
+        alert("Ошибка: Поле ввода никнейма не найдено.");
+        return;
+    }
 
-    // 3. Получаем значение
-    const nickname = nicknameInput ? nicknameInput.value.trim() : "";
+    // ЛОГИРОВАНИЕ ДЛЯ ПРОВЕРКИ В КЛИКЕ
+    console.log("Проверяем никнейм перед отправкой. Введено букв:", nickname.length);
+    console.log("Текст внутри инпута:", nickname);
 
-    // ВЫВОДИМ В КОНСОЛЬ ДЛЯ ПРОВЕРКИ: какой именно элемент мы нашли и что внутри него
-    console.log("Найденный элемент инпута:", nicknameInput);
-    console.log("Фактическое значение никнейма:", nickname);
-
-    // 4. Проверяем длину
+    // 4. Проверяем длину (если поле действительно пустое или меньше 3 символов)
     if (!nickname || nickname.length <= 3) {
         alert("Никнейм должен быть более 3 символов");
         return; 
     }
 
-    // Дальше ваш старый код...
+    // Если проверка прошла, блокируем кнопку и меняем текст
     if (btnSave) {
         btnSave.innerText = "⏳ Сохранение...";
         btnSave.disabled = true;
     }
 
+    try {
+        if (!auth.currentUser) {
+            alert("Ошибка: Вы не авторизованы!");
+            return;
+        }
+
+        let avatarUrl = (currentUserData && currentUserData.avatar) || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
+        let bannerUrl = (currentUserData && currentUserData.banner) || "";
+
+        if (avatarFile) {
+            const avatarRef = storage.ref(`avatars/${auth.currentUser.uid}_${Date.now()}`);
+            await avatarRef.put(avatarFile);
+            avatarUrl = await avatarRef.getDownloadURL();
+        }
+
+        if (bannerFile) {
+            const bannerRef = storage.ref(`banners/${auth.currentUser.uid}_${Date.now()}`);
+            await bannerRef.put(bannerFile);
+            bannerUrl = await bannerRef.getDownloadURL();
+        }
+
+        // Запись в Firestore Firebase
+        await db.collection("users").doc(auth.currentUser.uid).update({
+            username: nickname, 
+            avatar: avatarUrl,
+            banner: bannerUrl
+        });
+
+        alert("Профиль успешно обновлен!");
+        location.reload(); 
+
+    } catch (error) {
+        console.error("Ошибка при сохранении в Firebase:", error);
+        alert("Произошла ошибка при сохранении профиля: " + error.message);
+    } finally {
+        if (btnSave) {
+            btnSave.innerText = "Сохранить изменения";
+            btnSave.disabled = false;
+        }
+    }
+}
 
     console.log("Никнейм прошел проверку:", nickname);
     
