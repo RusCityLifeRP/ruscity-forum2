@@ -13,9 +13,42 @@
 }
 
 body {
-    background-color: var(--bg-main);
-    color: var(--text-main);
-    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: 'Arial', sans-serif; /* или твой шрифт */
+    
+    /* Добавляем фоновые изображения городов через запятую */
+    background-image: 
+        /* 1. Слой сильного затемнения (черный с прозрачностью 75%) */
+        linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
+        /* 2. Коллаж из трех городов (ссылки на качественные темные арты/фото) */
+        url('https://images.unsplash.com/photo-1547448415-e9f5b28e570d?q=80&w=600&auto=format&fit=crop'), /* Москва */
+        url('https://images.unsplash.com/photo-1556624073-2e42c2cf1d50?q=80&w=600&auto=format&fit=crop'), /* СПб */
+        url('https://images.unsplash.com/photo-1568233777407-7d5df2f73719?q=80&w=600&auto=format&fit=crop'); /* Сочи */
+
+    /* Настройки расположения: Москва слева, Питер по центру, Сочи справа */
+    background-position: center, left bottom, center bottom, right bottom;
+    
+    /* Размеры: каждый город занимает примерно 33% ширины экрана, чтобы они встали в ряд */
+    background-size: cover, 35% auto, 35% auto, 35% auto;
+    
+    /* Запрещаем картинкам повторяться */
+    background-repeat: no-repeat;
+    
+    /* Делаем фон фиксированным, чтобы при скролле форума он не двигался */
+    background-attachment: fixed;
+    
+    color: #fff; /* Делаем текст белым, так как фон теперь очень темный */
+}
+
+/* Рекомендуется: немного затемнить и скруглить блоки самого форума, чтобы они читались идеально */
+.screen, .forum-header, .forum-container {
+    background: rgba(20, 24, 33, 0.85) !important; /* Темная плашка */
+    backdrop-filter: blur(10px); /* Эффект размытия стекла за блоками */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    
 }
 
 .main-container {
