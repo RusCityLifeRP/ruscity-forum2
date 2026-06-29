@@ -14,12 +14,14 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Базовые системные роли проекта (Добавлены новые роли)
+// Базовые системные роли проекта (Добавлены Генеральный прокурор РФ и Заместители министров)
 const ROLES = [
     "Пользователь", 
     "Президент",
     "Полномочный представитель президента",
     "Руководитель администрации президента",
+    "Генеральный прокурор РФ",
+    "Председатель Верховного Суда РФ",
     "Помощник главного куратора",
     "Главный куратор",
     "Заместитель главного администратора форума", 
@@ -40,33 +42,25 @@ const ADMIN_PANEL_ROLES = [
     "Помощник главного куратора"
 ];
 
-// Обновленные точные фракции для выпадающего списка выдачи лидерства и типов зам/министров
+// Полный точный список фракций (Иерархия Официального портала гос. структур)
 const LEADER_FACTIONS_LIST = [
-    "правительство", 
-    "Министерство обороны",
-    "Министерство Юстиции",
+    "Правительство РФ",
+    "Судебная власть",
+    "Генеральная Прокуратура",
+    "Следственный комитет РФ",
+    "Федеральная служба безопасности",
     "Министерство внутренних дел",
-    "Министерство Социальной политики и труда",
-    "ГИБДД", 
-    "ЦГБ7 -Центральная городская больница 7", 
-    "ЦГБ3 - Центральная городская больница 3", 
-    "ФСИН- Федеральная служба исполнения наказаний", 
-    "Москва LIVE", 
-    "ФСБ - Федеральная служба безопасности", 
-    "прокуратура", 
-    "Следственный комитет", 
-    "Судебная власть", 
-    "ФСО - Федеральная служба охраны", 
-    "Росгвардия", 
-    "Армия", 
-    "ЦОДД - Центр организации дорожного движения", 
-    "МВД"
+    "Министерство обороны",
+    "Федеральная служба охраны",
+    "Федеральная служба исполнения наказаний",
+    "Росгвардия",
+    "Министерство здравоохранения",
+    "Средства массовой информации"
 ];
 
 let currentUserData = null;
 let allUsersCache = {}; 
 let serversCache = {}; 
-// Глобальные переменные для точного отслеживания где находится пользователь
 let selectedServerId = ""; 
 let selectedServerName = ""; 
 let selectedCategoryId = "";
@@ -79,7 +73,7 @@ let isGlobalInfoZone = false;
 let viewedProfileUid = "";
 
 // ==========================================
-// 1.5 НАДЕЖНАЯ ПРОВЕРКА ПРАВ МОДЕРАЦИИ И ЛИДЕРСТВА
+// 1.5 УЛУЧШЕННАЯ ПРОВЕРКА ПРАВ МОДЕРАЦИИ И ЛИДЕРСТВА
 // ==========================================
 function checkModerationRights() {
     if (!currentUserData) return false;
@@ -95,30 +89,40 @@ function checkModerationRights() {
     
     const userRoleLower = (currentUserData.role || "").toLowerCase().trim();
 
-    // Всеведающие глобальные роли
+    // Глобальные администраторы
     if (globalAdmins.some(role => userRoleLower === role.toLowerCase())) return true;
     
-    // В глобальных инфо-зонах лидеры не редактируют
     if (isGlobalInfoZone) return false;
-    // Блокируем, если не определился сервер или фракция
     if (!selectedServerName || !selectedFactionName) return false;
     
     const serverLower = selectedServerName.toLowerCase().trim();
     const factionLower = selectedFactionName.toLowerCase().trim();
     
-    // Права Председателя Верховного Суда РФ на ветку (судебная власть) на всех серверах
+    // Председатель Верховного Суда РФ — управляет судебной властью на всех серверах
     if (userRoleLower === "председатель верховного суда рф" && factionLower.includes("судебная власть")) {
         return true;
     }
 
-    // Права Министров на ветки правительства
-    const govBranches = ["правительство", "министерство обороны", "министерство юстиции", "министерство внутренних дел", "министерство социальной политики и труда"];
-    if (userRoleLower.includes("министр обороны") && govBranches.includes(factionLower)) return true;
-    if (userRoleLower.includes("министр юстиции") && govBranches.includes(factionLower)) return true;
-    if (userRoleLower.includes("министр внутрених дел") && govBranches.includes(factionLower)) return true;
-    if (userRoleLower.includes("министр социальной политики и труда") && govBranches.includes(factionLower)) return true;
+    // Генеральный прокурор РФ — управляет следственным комитетом и прокуратурой на всех серверах
+    if (userRoleLower === "генеральный прокурор рф" && (factionLower.includes("прокуратура") || factionLower.includes("следственный комитет"))) {
+        return true;
+    }
 
-    // Сверяем ключевые слова для Лидеров и Заместителей лидеров
+    // Проверка Министров и Заместителей министров (имеют аналогичные права на свои министерства)
+    if (userRoleLower.includes("министр обороны") || userRoleLower.includes("заместитель министра обороны") || userRoleLower.includes("зам. министра обороны")) {
+        if (factionLower.includes("министерство обороны")) return true;
+    }
+    if (userRoleLower.includes("министр юстиции") || userRoleLower.includes("заместитель министра юстиции") || userRoleLower.includes("зам. министра юстиции")) {
+        if (factionLower.includes("министерство юстиции") || factionLower.includes("генеральная прокуратура")) return true;
+    }
+    if (userRoleLower.includes("министр внутренних дел") || userRoleLower.includes("заместитель министра внутренних дел") || userRoleLower.includes("зам. министра внутренних дел") || userRoleLower.includes("министр внутрених дел")) {
+        if (factionLower.includes("министерство внутренних дел")) return true;
+    }
+    if (userRoleLower.includes("министр здравоохранения") || userRoleLower.includes("заместитель министра здравоохранения") || userRoleLower.includes("зам. министра здравоохранения")) {
+        if (factionLower.includes("министерство здравоохранения")) return true;
+    }
+
+    // Обычные Лидеры и Заместители фракций на конкретных серверах
     if (userRoleLower.includes(serverLower) && (userRoleLower.includes("лидер") || userRoleLower.includes("зам. лидера")) && userRoleLower.includes(factionLower)) {
         return true;
     }
@@ -141,7 +145,7 @@ auth.onAuthStateChanged(user => {
             if (!currentUserData) return;
             currentUserData.uid = user.uid;
             if (currentUserData.isBanned) {
-                alert("🔴 Ваш аккауйн заблокирован на данном форуме!");
+                alert("🔴 Ваш аккаунт заблокирован на данном форуме!");
                 auth.signOut().then(() => { location.reload(); });
                 return;
             }
@@ -152,7 +156,7 @@ auth.onAuthStateChanged(user => {
                 document.getElementById('profile-banner-preview').style.backgroundImage = b ? `url('${b}')` : "none";
             }
             if (authButtons) authButtons.classList.add('hidden');
-            if (btnHeaderRegister) btnHeaderRegister.classList.add('hidden'); // Скрываем кнопку регистрации после входа
+            if (btnHeaderRegister) btnHeaderRegister.classList.add('hidden'); 
             if (userMenu) userMenu.classList.remove('hidden');
             if (btnProfile) btnProfile.classList.remove('hidden');
             if (document.getElementById('header-username')) document.getElementById('header-username').innerText = currentUserData.username || "Пользователь";
@@ -166,7 +170,7 @@ auth.onAuthStateChanged(user => {
     } else {
         currentUserData = null;
         if (authButtons) authButtons.classList.remove('hidden');
-        if (btnHeaderRegister) btnHeaderRegister.classList.remove('hidden'); // Показываем если не авторизован
+        if (btnHeaderRegister) btnHeaderRegister.classList.remove('hidden'); 
         if (userMenu) userMenu.classList.add('hidden');
         if (btnAdmin) btnAdmin.classList.add('hidden');
         if (btnProfile) btnProfile.classList.add('hidden');
@@ -214,7 +218,7 @@ function registerUser() {
     const username = document.getElementById('reg-username').value.trim();
     const pass = document.getElementById('reg-password').value;
     if (!email || !username || !pass) {
-        alert("Пожалуйста, заполните абсолютно все поля для регистрации!");
+        alert("Пожалуйста, заполните все поля для регистрации!");
         return;
     }
     if (pass.length < 6) {
@@ -232,22 +236,14 @@ function registerUser() {
                 isBanned: false,
                 isMuted: false
             }).then(() => {
-                alert("🎉 Регистрация успешно завершена! Добро пожаловать на форум.");
+                alert("🎉 Регистрация успешно завершена!");
                 showScreen('screen-forum');
-                document.getElementById('reg-email').value = "";
-                document.getElementById('reg-username').value = "";
-                document.getElementById('reg-password').value = "";
             });
         })
-        .catch(err => {
-            alert("Ошибка при регистрации: " + err.message);
-        });
+        .catch(err => alert("Ошибка при регистрации: " + err.message));
 }
 function logout() { auth.signOut().then(() => { location.reload(); }); }
 
-// ==========================================
-// 3. СТРАНИЦА НАСТРОЕК ПРОФИЛЯ
-// ==========================================
 function previewImage(input, previewId, isBanner = false) {
     const file = input.files[0];
     if (!file) return;
@@ -337,7 +333,7 @@ function openServerCategories(id, name, emoji) {
     const div = document.getElementById('categories-list');
     if (!div) return;
     const cats = [
-        { id: "gov", name: "🏢 Государственные организации", desc: "Структуры и ведомства" },
+        { id: "gov", name: "🏢 Официальный портал гос. структур", desc: "Министерства, ведомства и службы исполнительной власти" },
         { id: "crime", name: "🥷 Криминальные организации", desc: "ОПГ и синдикаты" },
         { id: "reports", name: "🚫 Жалобы", desc: "Обращения игроков" }
     ];
@@ -365,7 +361,7 @@ function openCategoryFactions(catId, catName) {
         if (!div) return; div.innerHTML = "";
         let data = snap.val();
         
-        // Автогенерация дефолтных фракций для ветки ГОС, если они пусты
+        // Автогенерация иерархии гос. структур в случае отсутствия данных в БД
         if (!data && selectedCategoryId === "gov") {
             data = {};
             LEADER_FACTIONS_LIST.forEach((fac, index) => {
@@ -576,7 +572,6 @@ function openPublicProfile(uid) {
         Object.keys(comments).forEach(cId => {
             const c = comments[cId]; const item = document.createElement('div'); item.className = "comment-item";
             
-            // Проверка прав на удаление поста со стены пользователя
             let deleteCommentBtn = "";
             if(auth.currentUser) {
                 const isWallOwner = auth.currentUser.uid === viewedProfileUid;
@@ -689,7 +684,7 @@ function renderAdminUsers(usersData) {
                 </div>
                 
                 <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
-                    <span style="font-size:13px; color:#ff9f43; font-weight:600;">👑 Управление Организациями (Лидеры / Замы / Министры):</span>
+                    <span style="font-size:13px; color:#ff9f43; font-weight:600;">👑 Управление Организациями:</span>
                     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                         <select id="leader-server-${uid}" style="padding:5px; width:130px;">
                             ${serverOptions}
@@ -698,9 +693,13 @@ function renderAdminUsers(usersData) {
                             <option value="Лидер">Лидер</option>
                             <option value="Зам. Лидера">Зам. Лидера</option>
                             <option value="Министр обороны">Министр обороны</option>
+                            <option value="Заместитель министра обороны">Заместитель министра обороны</option>
                             <option value="Министр Юстиции">Министр Юстиции</option>
-                            <option value="Министр Внутрених дел">Министр Внутрених дел</option>
-                            <option value="Министр социальной политики и труда">Министр социальной политики и труда</option>
+                            <option value="Заместитель министра юстиции">Заместитель министра юстиции</option>
+                            <option value="Министр внутренних дел">Министр внутренних дел</option>
+                            <option value="Заместитель министра внутренних дел">Заместитель министра внутренних дел</option>
+                            <option value="Министр здравоохранения">Министр здравоохранения</option>
+                            <option value="Заместитель министра здравоохранения">Заместитель министра здравоохранения</option>
                         </select>
                         <select id="leader-faction-${uid}" style="padding:5px; flex-grow:1;">
                             ${factionOptions}
@@ -709,8 +708,8 @@ function renderAdminUsers(usersData) {
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
-                    <span style="font-size:12px; color:#8a99ad; width:120px;">Ввести вручную (Например: Председатель Верховного Суда РФ):</span>
-                    <input type="text" placeholder="Пример: Председатель Верховного Суда РФ" style="flex-grow:1; padding:5px 10px; font-size:12px;" id="custom-role-${uid}">
+                    <span style="font-size:12px; color:#8a99ad; width:120px;">Ручной ввод роли:</span>
+                    <input type="text" placeholder="Пример: Генеральный прокурор РФ" style="flex-grow:1; padding:5px 10px; font-size:12px;" id="custom-role-${uid}">
                     <button class="btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="assignCustomLeaderRole('${uid}')">Ок</button>
                 </div>
             </div>
@@ -733,7 +732,7 @@ function assignSelectLeaderRole(uid) {
     if (!serverSelect || !typeSelect || !factionSelect) return;
     
     let fullLeaderRole = "";
-    if(typeSelect.value.includes("Министр")) {
+    if(typeSelect.value.includes("Министр") || typeSelect.value.includes("заместитель министра") || typeSelect.value.includes("Заместитель министра")) {
         fullLeaderRole = `${typeSelect.value}`;
     } else {
         fullLeaderRole = `${serverSelect.value} ${typeSelect.value} ${factionSelect.value}`;
