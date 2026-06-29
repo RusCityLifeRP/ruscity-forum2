@@ -1,4 +1,4 @@
-// НАСТРОЙКА FIREBASE
+// Конфигурация Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -9,6 +9,7 @@ const firebaseConfig = {
     appId: "1:728638066749:web:78b207bc6765e3dc685a54"
 };
 
+// Инициализация Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
@@ -55,7 +56,7 @@ db.ref('servers').once('value', snapshot => {
     }
 });
 
-// СЛУШАТЕЛЬ СЕРВЕРОВ НА ГЛАВНОЙ
+// Слушатель серверов на главной странице
 db.ref('servers').on('value', snapshot => {
     const serversList = document.getElementById('servers-list');
     if (!serversList) return;
@@ -104,16 +105,19 @@ function openServerCategory(categoryType) {
 }
 
 function goBackFromSection() {
-    if (['gov','skr','proc','court','fsb','fsin','rosgvard','mvd','gibdd','codd','army','hospital3','hospital7','moscow_live'].includes(currentSectionId)) {
+    const gosSections = ['gov','skr','proc','court','fsb','fsin','rosgvard','mvd','gibdd','codd','army','hospital3','hospital7','moscow_live'];
+    const crimeSections = ['opg_tambov','opg_lyubertsy','mafia_rh'];
+    
+    if (gosSections.includes(currentSectionId)) {
         showScreen('screen-gos-orgs');
-    } else if (['opg_tambov','opg_lyubertsy','mafia_rh'].includes(currentSectionId)) {
+    } else if (crimeSections.includes(currentSectionId)) {
         showScreen('screen-crime-orgs');
     } else {
         showScreen('screen-server-categories');
     }
 }
 
-// ОТКРЫТИЕ РАЗДЕЛА С ТЕМАМИ
+// Открытие тем в выбранном разделе
 function openSection(sectionId) {
     currentSectionId = sectionId;
     showScreen('screen-section');
@@ -142,7 +146,9 @@ function openSection(sectionId) {
     });
 }
 
-function showTopicForm() { document.getElementById('topic-form-block').classList.toggle('hidden'); }
+function showTopicForm() { 
+    document.getElementById('topic-form-block').classList.toggle('hidden'); 
+}
 
 function createNewTopic() {
     const title = document.getElementById('new-topic-title').value.trim();
@@ -195,7 +201,7 @@ function createNewComment() {
     });
 }
 
-// ПРОФИЛИ И АВТОРИЗАЦИЯ
+// Функции аккаунтов и аутентификации
 function registerUser() {
     const username = document.getElementById('reg-username').value.trim();
     const email = document.getElementById('reg-email').value.trim();
@@ -259,16 +265,23 @@ function openProfile(uid) {
     });
 }
 
-// ПРОВОДНИК И КАРТИНКИ
+// Чтение локальных картинок из проводника
 document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById('file-avatar').addEventListener('change', (e) => {
-        const file = e.target.files[0]; if (!file) return;
-        const r = new FileReader(); r.onloadend = () => { base64Avatar = r.result; }; r.readAsDataURL(file);
-    });
-    document.getElementById('file-banner').addEventListener('change', (e) => {
-        const file = e.target.files[0]; if (!file) return;
-        const r = new FileReader(); r.onloadend = () => { base64Banner = r.result; }; r.readAsDataURL(file);
-    });
+    const avatarInput = document.getElementById('file-avatar');
+    const bannerInput = document.getElementById('file-banner');
+    
+    if(avatarInput) {
+        avatarInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            const r = new FileReader(); r.onloadend = () => { base64Avatar = r.result; }; r.readAsDataURL(file);
+        });
+    }
+    if(bannerInput) {
+        bannerInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            const r = new FileReader(); r.onloadend = () => { base64Banner = r.result; }; r.readAsDataURL(file);
+        });
+    }
 });
 
 function saveProfile() {
