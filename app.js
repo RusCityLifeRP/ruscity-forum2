@@ -180,13 +180,13 @@ async function saveProfileSettings() {
         btnSave.disabled = true;
     }
 
-    // Функция перевода файла в строку Base64 (Универсальный обход CORS)
+    // Хелпер: переводим файл в Base64 строку (Железобетонный обход CORS)
     const fileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => {
-                // Отрезаем технический заголовок "data:image/png;base64,"
+                // Извлекаем чистую строку base64 без мета-префикса
                 const base64String = reader.result.split(',')[1];
                 resolve(base64String);
             };
@@ -205,7 +205,7 @@ async function saveProfileSettings() {
         let bannerUrl = (currentUserData && currentUserData.banner) || "";
         const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
-        // ОБХОД CORS ДЛЯ АВАТАРКИ ЧЕРЕЗ DATA_URL / BASE64
+        // ЗАГРУЗКА АВАТАРКИ ЧЕРЕЗ PUT_STRING (БЕЗ CORS)
         if (avatarFile) {
             if (btnSave) btnSave.innerText = "⏳ Загрузка аватарки...";
             const fileName = `${uid}_${Date.now()}`;
@@ -213,12 +213,12 @@ async function saveProfileSettings() {
             
             const base64String = await fileToBase64(avatarFile);
             
-            // Отправляем как строку base64 - это обходит CORS блокировки браузера
+            // putString со спецификатором 'base64' не триггерит CORS preflight блокировки
             const snapshot = await avatarRef.putString(base64String, 'base64', { contentType: avatarFile.type });
             avatarUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // ОБХОД CORS ДЛЯ БАННЕРА
+        // ЗАГРУЗКА БАННЕРА ЧЕРЕЗ PUT_STRING (БЕЗ CORS)
         if (bannerFile) {
             if (btnSave) btnSave.innerText = "⏳ Загрузка баннера...";
             const fileName = `${uid}_${Date.now()}`;
@@ -230,8 +230,8 @@ async function saveProfileSettings() {
             bannerUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // ЗАПИСЬ В REALTIME DATABASE
-        if (btnSave) btnSave.innerText = "⏳ Запись в базу данных...";
+        // ЗАПИСЬ ОБНОВЛЕНИЙ В REALTIME DATABASE
+        if (btnSave) btnSave.innerText = "⏳ Обновление базы данных...";
         await db.ref('users/' + uid).update({
             username: nickname, 
             avatar: avatarUrl,
@@ -243,8 +243,8 @@ async function saveProfileSettings() {
         location.reload(); 
 
     } catch (error) {
-        console.error("Критическая ошибка:", error);
-        alert("Не удалось сохранить. Ошибка: " + error.message);
+        console.error("Ошибка при сохранении:", error);
+        alert("Не удалось сохранить: " + error.message);
     } finally {
         if (btnSave) {
             btnSave.innerText = "Сохранить изменения";
@@ -252,7 +252,6 @@ async function saveProfileSettings() {
         }
     }
 }
-
 
 // ==========================================
 // СИСТЕМА РЕГИСТРАЦИИ И ВХОДА (ИСПРАВЛЕНО)
