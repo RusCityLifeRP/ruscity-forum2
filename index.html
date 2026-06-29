@@ -17,19 +17,19 @@
         </div>
         
         <nav class="header-nav">
-            <button onclick="showScreen('screen-forum')" class="nav-link">Главная</button>
-            <button id="btn-profile-edit" class="nav-link hidden" onclick="showScreen('screen-profile')">Настройки профиля</button>
-            <button id="btn-admin-panel" class="nav-link hidden" onclick="openAdminPanel()">Админ-панель</button>
+            <button onclick="showScreen('screen-forum')" class="nav-btn-modern">🏠 Главная</button>
+            <button id="btn-profile-edit" class="nav-btn-modern hidden" onclick="showScreen('screen-profile')">⚙️ Настройки</button>
+            <button id="btn-admin-panel" class="nav-btn-modern btn-admin-accent hidden" onclick="openAdminPanel()">👑 Админ-панель</button>
         </nav>
 
         <div class="auth-zone">
             <div id="auth-buttons">
                 <button onclick="showScreen('screen-login')" class="btn-primary">Войти</button>
             </div>
-            <div id="user-menu" class="user-profile-menu hidden">
-                <img id="header-avatar" src="" alt="Аватар" class="profile-avatar-mini" onclick="showScreen('screen-profile')" style="cursor:pointer;">
-                <span id="header-username" class="profile-username-text" onclick="showScreen('screen-profile')" style="cursor:pointer;">Загрузка...</span>
-                <button onclick="logout()" class="btn-logout">Выйти</button>
+            <div id="user-menu" class="user-profile-menu hidden" onclick="showScreen('screen-profile')">
+                <img id="header-avatar" src="" alt="Аватар" class="profile-avatar-mini">
+                <span id="header-username" class="profile-username-text">Загрузка...</span>
+                <button onclick="logout(); event.stopPropagation();" class="btn-logout">Выйти</button>
             </div>
         </div>
     </header>
@@ -73,17 +73,36 @@
             </div>
         </div>
 
-        <div id="screen-profile" class="screen hidden">
-            <h2>Редактирование профиля</h2>
+        <div id="screen-profile" class="screen hidden profile-editor-card">
+            <div class="profile-preview-banner" id="profile-banner-preview">
+                <div class="profile-preview-avatar-container">
+                    <img id="profile-avatar-preview" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Превью аватара">
+                </div>
+            </div>
+
+            <h2 style="margin-top: 50px; text-align: center;">Настройки профиля</h2>
+            
             <div class="form-group">
-                <label>Ваш никнейм на форуме:</label>
-                <input type="text" id="edit-username" placeholder="Новое имя">
+                <label class="input-label">Ваш никнейм на форуме</label>
+                <input type="text" id="edit-username" placeholder="Введите новый ник">
                 
-                <label>Ссылка на URL аватарки:</label>
-                <input type="text" id="edit-avatar" placeholder="https://ссылка-на-картинку.jpg">
+                <div class="upload-grid">
+                    <div>
+                        <label class="input-label">Фото профиля (Аватар)</label>
+                        <button class="btn-upload-custom" onclick="document.getElementById('file-avatar').click()">📁 Выбрать аватар</button>
+                        <input type="file" id="file-avatar" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-avatar-preview')">
+                    </div>
+                    <div>
+                        <label class="input-label">Обложка профиля (Баннер)</label>
+                        <button class="btn-upload-custom" onclick="document.getElementById('file-banner').click()">🖼️ Выбрать баннер</button>
+                        <input type="file" id="file-banner" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-banner-preview', true)">
+                    </div>
+                </div>
                 
-                <button class="btn-primary" onclick="saveProfileChanges()">Сохранить изменения</button>
-                <button class="btn-secondary" onclick="showScreen('screen-forum')">Отмена</button>
+                <div class="profile-editor-actions">
+                    <button class="btn-primary btn-save" onclick="saveProfileChanges()">💾 Сохранить изменения</button>
+                    <button class="btn-secondary" onclick="showScreen('screen-forum')">Отмена</button>
+                </div>
             </div>
         </div>
 
