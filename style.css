@@ -1,4 +1,3 @@
-/* Общие стили и красивый темный фон */
 body {
     margin: 0;
     padding: 0;
@@ -9,7 +8,6 @@ body {
     color: #f5f6f7;
 }
 
-/* Стили шапки */
 .forum-header {
     display: flex;
     justify-content: space-between;
@@ -38,7 +36,6 @@ body {
 }
 .header-nav .nav-link:hover { color: #fff; }
 
-/* ЗОНА ПРОФИЛЯ (Фикс багов с аватаркой!) */
 .auth-zone {
     display: flex;
     align-items: center;
@@ -57,7 +54,7 @@ body {
     width: 40px !important;
     height: 40px !important;
     object-fit: cover;
-    border-radius: 50%;
+    border-radius: 50% !important;
     border: 2px solid #ff4b4b;
     margin-right: 10px;
 }
@@ -76,14 +73,12 @@ body {
     font-weight: bold;
 }
 
-/* Контейнер контента */
 .forum-container {
     max-width: 1000px;
     margin: 40px auto;
     padding: 0 20px;
 }
 
-/* Стили карточек серверов (Безопасные клики) */
 .screen {
     background: #1c202a;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -92,38 +87,80 @@ body {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
+/* ОФОРМЛЕНИЕ КАРТОЧЕК СЕРВЕРОВ (ФИКС КЛИКОВ) */
 .server-card-item {
     background: #232936 !important;
     border-left: 4px solid #ff4b4b;
-    padding: 15px 20px;
-    margin-bottom: 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    position: relative;
-    z-index: 10;
-    pointer-events: auto !important;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     transition: transform 0.2s, background 0.2s;
 }
+
 .server-card-item:hover {
-    transform: translateX(5px);
+    transform: translateX(4px);
     background: #2b3344 !important;
 }
 
-.server-card-content h3 { margin: 0 0 5px 0; color: #fff; }
-.server-card-content p { margin: 0; color: #a0aab8; font-size: 0.9rem; }
+.server-clickable-area {
+    flex-grow: 1;
+    cursor: pointer;
+}
 
-/* Вспомогательные классы */
+.server-clickable-area h3 { margin: 0 0 5px 0; color: #fff; }
+.server-clickable-area p { margin: 0; color: #a0aab8; font-size: 0.9rem; }
+
+/* Формы ввода */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+}
+.form-group input {
+    background: #232936;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    color: #fff;
+    border-radius: 6px;
+}
+
 .hidden { display: none !important; }
+
 .btn-primary {
     background: #ff4b4b;
     color: #fff;
     border: none;
-    padding: 8px 18px;
+    padding: 10px 20px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
 }
 .btn-primary:hover { background: #e03a3a; }
+
+.btn-secondary {
+    background: #3a4150;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-admin-action {
+    background: #e03a3a;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    z-index: 100;
+}
+.btn-admin-action:hover { background: #ff4b4b; }
 
 /* Админка */
 .admin-user-item {
