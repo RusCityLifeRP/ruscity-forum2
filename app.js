@@ -182,7 +182,6 @@ async function saveProfileSettings() {
         btnSave.disabled = true;
     }
 
-    // Хелпер для чтения файла в формат DataURL
     const fileToDataURL = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -199,38 +198,28 @@ async function saveProfileSettings() {
         }
 
         const uid = auth.currentUser.uid;
+        // Берём старые URL из базы, если новые файлы не выбраны
         let avatarUrl = (currentUserData && currentUserData.avatar) || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
         let bannerUrl = (currentUserData && currentUserData.banner) || "";
         const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
-        // Загрузка аватарки через data_url string
+        // Если юзер выбрал аватарку, превращаем её в текст
         if (avatarFile) {
-            if (btnSave) btnSave.innerText = "⏳ Загрузка аватарки...";
-            const fileName = `${uid}_${Date.now()}`;
-            const avatarRef = storage.ref().child('avatars').child(fileName);
-            
-            const dataURL = await fileToDataURL(avatarFile);
-            // Формат data_url содержит и тип, и данные. Идеально обходит CORS preflight.
-            const snapshot = await avatarRef.putString(dataURL, 'data_url');
-            avatarUrl = await snapshot.ref.getDownloadURL();
+            if (btnSave) btnSave.innerText = "⏳ Обработка аватарки...";
+            avatarUrl = await fileToDataURL(avatarFile); // Теперь это текстовая строка картинки
         }
 
-        // Загрузка баннера через data_url string
+        // Если юзер выбрал баннер, превращаем его в текст
         if (bannerFile) {
-            if (btnSave) btnSave.innerText = "⏳ Загрузка баннера...";
-            const fileName = `${uid}_${Date.now()}`;
-            const bannerRef = storage.ref().child('banners').child(fileName);
-            
-            const dataURL = await fileToDataURL(bannerFile);
-            const snapshot = await bannerRef.putString(dataURL, 'data_url');
-            bannerUrl = await snapshot.ref.getDownloadURL();
+            if (btnSave) btnSave.innerText = "⏳ Обработка баннера...";
+            bannerUrl = await fileToDataURL(bannerFile); // Теперь это текстовая строка баннера
         }
 
-        // Обновление в Realtime Database
+        // Записываем всё НАПРЯМУЮ В БАЗУ ДАННЫХ (Здесь CORS никогда не сработает!)
         if (btnSave) btnSave.innerText = "⏳ Запись в БД...";
         await db.ref('users/' + uid).update({
             username: nickname, 
-            avatar: avatarUrl,
+            avatar: avatarUrl, // Текст картинки сохранится в базу данных
             banner: bannerUrl,
             bio: bioText
         });
@@ -248,6 +237,7 @@ async function saveProfileSettings() {
         }
     }
 }
+
 
 // ==========================================
 // СИСТЕМА РЕГИСТРАЦИИ И ВХОДА (ИСПРАВЛЕНО)
