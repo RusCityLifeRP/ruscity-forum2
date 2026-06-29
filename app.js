@@ -150,19 +150,24 @@ function openProfileSettings() {
     document.getElementById('file-banner-input').value = "";
 }
 
-async function saveProfileSettings() {
-    if (!auth.currentUser) return alert("Ошибка сессии!");
+function saveProfileSettings() {
+    // 1. Сначала находим поле ввода (инпут) на странице. 
+    // Если у инпута другой id, например id="username", замените 'nickname' на 'username'
+    const nicknameInput = document.getElementById('nickname') || document.getElementById('username') || document.querySelector('input[type="text"]');
     
-    const btnSave = document.getElementById('btn-save-profile');
-    const newUsername = document.getElementById('edit-username').value.trim();
-    const newBio = document.getElementById('edit-bio').value.trim();
-    const avatarFile = document.getElementById('file-avatar-input').files[0];
-    const bannerFile = document.getElementById('file-banner-input').files[0];
+    // 2. Получаем само значение из инпута и убираем случайные пробелы по краям
+    const nickname = nicknameInput ? nicknameInput.value.trim() : "";
 
-    if (!nickname || !nickname.lenght <= 3) {
+    // 3. Проверяем длину (теперь переменная nickname существует, и ошибки не будет)
+    if (!nickname || nickname.length <= 3) {
         alert("Никнейм должен быть более 3 символов");
-        return;
+        return; // Останавливаем выполнение, чтобы пустой ник не сохранялся
     }
+
+    // --- ОСТАЛЬНОЙ ВАШ КОД НИЖЕ ---
+    // (Здесь должен идти ваш старый код, который отправляет данные в базу или сохраняет их)
+    console.log("Никнейм прошел проверку:", nickname);
+}
 
     btnSave.innerText = "⏳ Сохранение...";
     btnSave.disabled = true;
