@@ -363,4 +363,35 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     font-weight: 600;
     color: #f1f5f9;
 }
+/* Контейнер для уведомлений (размести его в углу) */
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Красивое зеленое уведомление */
+.toast-success {
+    background: rgba(16, 185, 129, 0.15); /* Зеленый с прозрачностью */
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    color: #34d399;
+    padding: 15px 25px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
 
