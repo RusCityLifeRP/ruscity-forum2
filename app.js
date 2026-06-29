@@ -27,7 +27,7 @@ const ALL_FORUM_ROLES = [
     "Помощник главного куратора",
     "Главный куратор",
     "Заместитель главного admina",
-    "Главный admina", // Оставляю дубликат на случай, если в базе старая запись
+    "Главный admina",
     "Главный админ",
     "Спец. Админ",
     "Президент РФ",
@@ -63,6 +63,13 @@ const LEADER_FACTIONS_LIST = [
     "Москва LIVE"
 ];
 
+// Список серверов для жесткой привязки лидеров
+const SERVERS_LIST_CONFIG = {
+    "server1": "🏰 Москва",
+    "server2": "🌴 Сочи",
+    "server3": "⚓ Санкт-Петербург"
+};
+
 let currentServerId = null;
 let currentCategoryId = null;
 let currentFactionId = null;
@@ -70,7 +77,7 @@ let currentTopicId = null;
 let currentUserData = null;
 
 // ==========================================
-// СИСТЕМА УМНЫХ ПРАВ И ДОСТУПОВ НА РЕДАКТИРОВАНИЕ
+// СИСТЕМА УМНЫХ ПРАВ И ДОСТУПОВ (С УЧЕТОМ СЕРВЕРА)
 // ==========================================
 function hasEditAccess() {
     if (!currentUserData) return false;
@@ -80,6 +87,7 @@ function hasEditAccess() {
     // 1. Высший доступ (Редактируют АБСОЛЮТНО ВСЕ ветки на ВСЕХ серверах)
     const superRoles = [
         "Руководство проекта", 
+        "Спец. Admin", 
         "Спец. Админ", 
         "Главный админ", 
         "Главный admina",
@@ -90,6 +98,9 @@ function hasEditAccess() {
         "Полномочный представитель президента РФ"
     ];
     if (superRoles.includes(role)) return true;
+    
+    // Разделы "Важная информация" обычным лидерам недоступны
+    if (currentServerId === "info") return false;
     
     // Получаем название текущего открытого раздела/организации
     const currentFactionName = document.getElementById('current-faction-title') ? document.getElementById('current-faction-title').innerText.trim() : "";
@@ -128,11 +139,13 @@ function hasEditAccess() {
         return socialFactions.includes(currentFactionName);
     }
     
-    // 8. Обычные Лидеры и Заместители (только своя закрепленная фракция)
+    // 8. Жесткая проверка Лидеров и Заместителей по ИХ СЕРВЕРУ и ФРАКЦИИ
     if (currentUserData.isLeader || currentUserData.isSubLeader) {
-        if (currentUserData.leaderFaction) {
-            return currentFactionName === currentUserData.leaderFaction.trim();
-        }
+        const leaderServer = currentUserData.leaderServer || "";
+        const leaderFaction = currentUserData.leaderFaction ? currentUserData.leaderFaction.trim() : "";
+        
+        // Доступ разрешен только если совпал ID сервера И название фракции
+        return (currentServerId === leaderServer && currentFactionName === leaderFaction);
     }
     
     return false;
@@ -170,7 +183,6 @@ auth.onAuthStateChanged(user => {
                 document.getElementById('header-avatar').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
             }
             
-            // Доступ к админ-панели для всех контролирующих ролей
             if (btnAdmin) {
                 const allowedToAdmin = ["Руководство проекта", "Спец. Админ", "Главный admina", "Главный админ", "Заместитель главного admina", "Главный куратор"];
                 if (allowedToAdmin.includes(currentUserData.role)) {
@@ -211,6 +223,7 @@ function updateActionButtonsVisibility() {
     const btnCreateTopic = document.getElementById('btn-show-create-topic');
     const btnCreateSubtopic = document.getElementById('btn-show-create-subtopic');
     const adminEditorBlock = document.getElementById('topic-admin-editor-block');
+    const btnDeleteTopic = document.getElementById('btn-delete-current-topic');
     
     if (btnCreateFaction) {
         if (isHighAdmin) btnCreateFaction.classList.remove('hidden');
@@ -228,6 +241,10 @@ function updateActionButtonsVisibility() {
         if (hasAccess) adminEditorBlock.classList.remove('hidden');
         else adminEditorBlock.classList.add('hidden');
     }
+    if (btnDeleteTopic) {
+        if (hasAccess) btnDeleteTopic.classList.remove('hidden');
+        else btnDeleteTopic.classList.add('hidden');
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -235,7 +252,6 @@ document.addEventListener("DOMContentLoaded", () => {
     loadServers();
 });
 
-// Важная информация (Правила, Законодательство) — Автозаполнение, если пусто
 function loadInfoSections() {
     const container = document.getElementById('info-sections-list');
     if (!container) return;
@@ -274,7 +290,6 @@ function loadInfoSections() {
     });
 }
 
-// Загрузка всех 3 серверов — Автозаполнение, если пусто
 function loadServers() {
     const container = document.getElementById('servers-list');
     if (!container) return;
@@ -438,10 +453,25 @@ function loadTopics() {
             div.className = 'forum-section-card item-clickable';
             div.innerHTML = `
                 <div class="section-icon">📌</div>
-                <div class="section-info">
+                <div class="section-info" style="flex-grow: 1;">
                     <div class="section-title">${topic.name}</div>
                 </div>
             `;
+            
+            // Кнопка быстрого удаления темы прямо из списка (если есть права)
+            if (hasEditAccess()) {
+                const btnDel = document.createElement('button');
+                btnDel.innerText = '❌';
+                btnDel.style.background = 'none';
+                btnDel.style.border = 'none';
+                btnDel.style.cursor = 'pointer';
+                btnDel.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteTopic(id);
+                };
+                div.appendChild(btnDel);
+            }
+
             div.onclick = () => openTopicView(id, topic.name);
             container.appendChild(div);
         }
@@ -464,6 +494,29 @@ function createNewTopic() {
     }).then(() => {
         input.value = '';
         document.getElementById('create-topic-form').classList.add('hidden');
+    });
+}
+
+// Удаление темы
+function deleteTopic(id) {
+    if (!confirm("Вы уверены, что хотите безвозвратно удалить эту тему?")) return;
+    
+    // Удаляем саму тему
+    db.ref(`topics/${currentServerId}/${currentCategoryId}/${currentFactionId}/${id}`).remove();
+    // Удаляем связанные подтемы
+    db.ref(`subtopics/${id}`).remove().then(() => {
+        alert("Тема успешно удалена!");
+    });
+}
+
+// Удаление открытой темы (изнутри просмотра)
+function deleteCurrentTopic() {
+    if (!currentTopicId) return;
+    if (!confirm("Удалить текущую тему и вернуться назад?")) return;
+    
+    db.ref(`topics/${currentServerId}/${currentCategoryId}/${currentFactionId}/${currentTopicId}`).remove();
+    db.ref(`subtopics/${currentTopicId}`).remove().then(() => {
+        backFromTopicView();
     });
 }
 
@@ -539,10 +592,26 @@ function loadSubTopics() {
             div.style.background = '#1a202c';
             div.innerHTML = `
                 <div class="section-icon">📁</div>
-                <div class="section-info">
+                <div class="section-info" style="flex-grow:1;">
                     <div class="section-title" style="color:#60a5fa;">${sub.name}</div>
                 </div>
             `;
+            
+            if (hasEditAccess()) {
+                const btnDelSub = document.createElement('button');
+                btnDelSub.innerText = '❌';
+                btnDelSub.style.background = 'none';
+                btnDelSub.style.border = 'none';
+                btnDelSub.style.cursor = 'pointer';
+                btnDelSub.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm("Удалить подтему?")) {
+                        db.ref(`subtopics/${currentTopicId}/${id}`).remove();
+                    }
+                };
+                div.appendChild(btnDelSub);
+            }
+
             div.onclick = () => openTopicView(id, sub.name);
             container.appendChild(div);
         }
@@ -576,7 +645,7 @@ function saveTopicContent() {
 }
 
 // ==========================================
-// АВТОРИЗАЦИЯ, ЛАЙКИ И ПРОФИЛИ ЮЗЕРОВ
+// АВТОРИЗАЦИЯ, ЛАЙКИ И КОММЕНТАРИИ
 // ==========================================
 function registerUser() {
     const usernameInput = document.getElementById('reg-username').value.trim();
@@ -595,6 +664,7 @@ function registerUser() {
                 isLeader: false,
                 isSubLeader: false,
                 leaderFaction: "",
+                leaderServer: "",
                 avatar: "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png",
                 banner: "",
                 isBanned: false,
@@ -724,12 +794,12 @@ function loadProfileComments() {
 }
 
 // ==========================================
-// ПОЛНОЦЕННАЯ АДМИН-ПАНЕЛЬ С КОНТРОЛЕМ ЛИДЕРОВ/ЗАМОВ И ВСЕМИ РОЛЯМИ
+// УЛУЧШЕННАЯ АДМИН-ПАНЕЛЬ С ВЫБОРОМ СЕРВЕРА
 // ==========================================
 let allUsersCache = {};
 
 function openAdminPanel() {
-    const allowed = ["Руководство проекта", "Спец. Админ", "Главный админ", "Главный admina", "Заместитель главного admina", "Главный куратор"];
+    const allowed = ["Руководство проекта", "Спец. Админ", "Главный admina", "Главный админ", "Заместитель главного admina", "Главный куратор"];
     if (!currentUserData || !allowed.includes(currentUserData.role)) return alert("Доступ запрещен!");
     showScreen('screen-admin');
     loadAdminUsers();
@@ -755,17 +825,21 @@ function renderAdminUsersList(usersData) {
         card.style.alignItems = 'stretch';
         card.style.gap = '15px';
         
-        // Список ВСЕХ возможных административных ролей для селекта
         let roleOptionsHtml = '';
         ALL_FORUM_ROLES.forEach(r => {
             roleOptionsHtml += `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`;
         });
 
-        // Список фракций
         let factionOptionsHtml = `<option value="">-- Без фракции --</option>`;
         LEADER_FACTIONS_LIST.forEach(f => {
             factionOptionsHtml += `<option value="${f}" ${u.leaderFaction === f ? 'selected' : ''}>${f}</option>`;
         });
+
+        // Генерируем опции выбора серверов для привязки прав лидера
+        let serverOptionsHtml = `<option value="">-- Без сервера (Министры/Высшие роли) --</option>`;
+        for (let sId in SERVERS_LIST_CONFIG) {
+            serverOptionsHtml += `<option value="${sId}" ${u.leaderServer === sId ? 'selected' : ''}>${SERVERS_LIST_CONFIG[sId]}</option>`;
+        }
         
         card.innerHTML = `
             <div style="display:flex; align-items:center; gap:15px; justify-content:space-between; flex-wrap:wrap;">
@@ -786,7 +860,6 @@ function renderAdminUsersList(usersData) {
                 </div>
             </div>
             
-            <!-- БЛОК НАЗНАЧЕНИЯ И УПРАВЛЕНИЯ СТАТУСАМИ ЛИДЕР / ЗАМЕСТИТЕЛЬ -->
             <div style="display:flex; flex-direction:column; gap:10px; background:rgba(0,0,0,0.2); padding:12px; border-radius:6px;">
                 <div style="display:flex; gap:20px; flex-wrap:wrap;">
                     <label style="color:#cbd5e1; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:5px;">
@@ -796,11 +869,19 @@ function renderAdminUsersList(usersData) {
                         <input type="checkbox" ${u.isSubLeader ? 'checked' : ''} onchange="updateLeaderStatus('${uid}', 'isSubLeader', this.checked)"> 📋 Назначить Заместителем
                     </label>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">
-                    <span style="font-size:13px; color:#8a99ad;">Привязать к фракции (для Лидеров/Замов):</span>
-                    <select onchange="updateUserFaction('${uid}', this.value)" style="background:#12171f; color:#fff; border:1px solid #334155; padding:5px; border-radius:4px; font-size:13px; flex-grow:1;">
-                        ${factionOptionsHtml}
-                    </select>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top:5px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:13px; color:#8a99ad; min-width:120px;">Игровой сервер:</span>
+                        <select onchange="updateUserServer('${uid}', this.value)" style="background:#12171f; color:#fff; border:1px solid #334155; padding:5px; border-radius:4px; font-size:13px; flex-grow:1;">
+                            ${serverOptionsHtml}
+                        </select>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:13px; color:#8a99ad; min-width:120px;">Фракция/Орг:</span>
+                        <select onchange="updateUserFaction('${uid}', this.value)" style="background:#12171f; color:#fff; border:1px solid #334155; padding:5px; border-radius:4px; font-size:13px; flex-grow:1;">
+                            ${factionOptionsHtml}
+                        </select>
+                    </div>
                 </div>
             </div>
         `;
@@ -833,5 +914,10 @@ function updateLeaderStatus(uid, field, value) {
 }
 
 function updateUserFaction(uid, factionName) {
-    db.ref(`users/${uid}/leaderFaction`).set(factionName).then(() => alert("Привязка фракции обновлена!"));
+    db.ref(`users/${uid}/leaderFaction`).set(factionName).then(() => alert("Привязка организации обновлена!"));
+}
+
+// Новая функция сохранения сервера для лидера
+function updateUserServer(uid, serverId) {
+    db.ref(`users/${uid}/leaderServer`).set(serverId).then(() => alert("Привязка сервера лидера обновлена!"));
 }
