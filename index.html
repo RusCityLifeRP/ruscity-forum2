@@ -11,7 +11,6 @@
 </head>
 <body>
 
-    <!-- Шапка сайта -->
     <header class="forum-header">
         <div class="header-logo" onclick="showScreen('screen-forum')">
             <span class="logo-main">RusCity</span><span class="logo-sub">Life RP</span>
@@ -35,10 +34,8 @@
         </div>
     </header>
 
-    <!-- Основной контейнер -->
     <main class="forum-container">
         
-        <!-- ЭКРАН 1: Список серверов -->
         <div id="screen-forum" class="screen">
             <h2 class="page-title">Важная информация</h2>
             <div id="info-sections-list" class="sections-list" style="margin-bottom: 40px;"></div>
@@ -47,14 +44,12 @@
             <div id="servers-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 2: Категории сервера -->
         <div id="screen-categories" class="screen hidden">
             <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
             <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
             <div id="categories-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 3: Список фракций -->
         <div id="screen-factions" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
@@ -72,7 +67,6 @@
             <div id="factions-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 4: Темы -->
         <div id="screen-topics" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-factions">← Назад</button>
@@ -90,7 +84,25 @@
             <div id="topics-list" class="sections-list"></div>
         </div>
 
-        <!-- ЭКРАН 5: Вход и Сброс пароля -->
+        <div id="screen-view-topic" class="screen hidden">
+            <button class="btn-secondary" onclick="backFromTopicView()" style="margin-bottom: 20px;">← Назад к списку тем</button>
+            
+            <div class="topic-view-container">
+                <h2 id="topic-view-title" class="page-title">Название темы</h2>
+                
+                <div id="topic-view-content" class="topic-content-display">Текст публикации загружается...</div>
+                
+                <div id="topic-admin-editor-block" class="hidden" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <button id="btn-toggle-editor" class="btn-secondary" onclick="toggleTopicEditor()" style="margin-bottom: 15px;">✍️ Редактировать контент</button>
+                    
+                    <div id="topic-editor-inputs" class="hidden" style="display: flex; flex-direction: column; gap: 10px;">
+                        <textarea id="textarea-topic-content" rows="12" placeholder="Введите текст темы здесь... Использовать Enter для переноса строк." style="width: 100%; background: #12171f; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 6px; resize: vertical; font-size: 14px; line-height: 1.5;"></textarea>
+                        <button class="btn-primary" onclick="saveTopicContent()" style="background: #10b981; max-width: 200px;">💾 Сохранить изменения</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="screen-login" class="screen hidden">
             <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
             <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
@@ -114,7 +126,6 @@
             </div>
         </div>
 
-        <!-- ЭКРАН 6: Настройки собственного профиля -->
         <div id="screen-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="profile-banner-preview">
                 <div class="profile-preview-avatar-container">
@@ -146,7 +157,6 @@
             </div>
         </div>
 
-        <!-- ЭКРАН 7: Публичный профиль игрока (Стена, лайки, комменты) -->
         <div id="screen-public-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="public-banner">
                 <div class="profile-preview-avatar-container">
@@ -176,7 +186,6 @@
             </div>
         </div>
 
-        <!-- ЭКРАН 8: Админка (Модерация и Наказания) -->
         <div id="screen-admin" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 class="page-title" style="margin: 0;">👑 Панель управления проектом</h2>
