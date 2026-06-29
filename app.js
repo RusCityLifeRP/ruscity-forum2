@@ -9,14 +9,13 @@ const firebaseConfig = {
     appId: "1:728638066749:web:78b207bc6765e3dc685a54"
 };
 
-function isProjectManagement() {
-    return currentUserData && currentUserData.role === 'Руководство проекта';
-}
-
 // Инициализация Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
+
+function isProjectManagement() {
+    return currentUserData && currentUserData.role === 'Руководство проекта';
 
 let currentUserData = null;
 let viewedUserId = null;
