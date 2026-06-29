@@ -138,8 +138,18 @@
             </div>
         </div>
 
+                <!-- ЭКРАН 7: Админка (Модерация и Наказания) -->
         <div id="screen-admin" class="screen hidden">
-            <h2>Управление пользователями (Выдача ролей)</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="page-title" style="margin: 0;">👑 Панель управления проектом</h2>
+                <button class="btn-secondary" onclick="showScreen('screen-forum')">← На главную</button>
+            </div>
+            
+            <!-- Живой поиск -->
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="admin-search-user" placeholder="🔍 Поиск пользователя по никнейму..." oninput="filterAdminUsers()" style="width: 100%; max-width: 400px;">
+            </div>
+
             <div id="admin-users-list" class="admin-list-container"></div>
         </div>
 
