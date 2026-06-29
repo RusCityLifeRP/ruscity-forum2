@@ -45,6 +45,44 @@ function showScreen(screenId) {
     document.getElementById(screenId).classList.remove('hidden');
 }
 
+function openAdminPanel() {
+    if (!isProjectManagement()) {
+        alert("Доступ запрещен!");
+        return;
+    }
+    
+    showScreen('screen-admin');
+    const list = document.getElementById('admin-users-list');
+    list.innerHTML = 'Загрузка...';
+
+    // Читаем список пользователей из базы
+    db.ref('users').once('value', snapshot => {
+        list.innerHTML = '';
+        const users = snapshot.val();
+        
+        Object.keys(users).forEach(uid => {
+            const user = users[uid];
+            const div = document.createElement('div');
+            div.className = 'admin-user-item';
+            div.innerHTML = `
+                <p><strong>${user.username || 'Без имени'}</strong> (${user.role || 'Пользователь'})</p>
+                <button onclick="setAdminRole('${uid}')">Дать Руководство</button>
+            `;
+            list.appendChild(div);
+        });
+    });
+}
+
+// Функция смены роли
+function setAdminRole(uid) {
+    db.ref('users/' + uid).update({
+        role: 'Руководство проекта'
+    }).then(() => {
+        alert("Роль обновлена!");
+        openAdminPanel(); // Перезагружаем список
+    });
+}
+
 function isProjectManagement() {
     return currentUserData && currentUserData.role === 'Руководство проекта';
 }
