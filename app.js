@@ -35,22 +35,22 @@ const ROLES = [
 // Панель администратора доступна руководству, спецам, га, зга и высшему аппарату президента
 const ADMIN_PANEL_ROLES = ["Руководство проекта", "Специальный администратор", "Главный администратор", "Заместитель главного администратора", "Президент РФ", "Полномочный председатель Президента РФ"];
 
-// Иерархия государственных структур на всех серверах
+// 1. ЗАМЕНИ ТВОЙ МАССИВ НА ЭТОТ (Строгая иерархия госструктур)
 const LEADER_FACTIONS_LIST = [
-    "Судебная власть",
+    "Судебная Власть",
     "Прокуратура",
-    "следственный комитет",
-    "правительство",
-    "ФСБ - Федеральная служба безопасности",
-    "Армии",
+    "Следственный комитет",
+    "Правительство",
+    "Федеральная служба безопасность",
+    "Армия",
     "МВД",
     "ГИБДД",
-    "ФСИН- Федеральная служба исполнения наказаний",
-    "ФСО - Федеральная служба охраны",
-    "Росгвардии",
-    "ЦГБ7 -Центральная городская больница 7",
-    "ЦГБ3 - Центральная городская больница 3",
-    "ЦОДД - Центр организации дорожного движения",
+    "Федеральная служба исполнения наказаний",
+    "Федеральная служба охраны",
+    "Росгвардия",
+    "Центральная городская больница 7",
+    "Центральная городская больница 3",
+    "Центр организации дорожного движение",
     "Москва LIVE"
 ];
 
@@ -119,11 +119,11 @@ function checkModerationRights() {
 // ==========================================
 // 2. СЛУШАТЕЛЬ СЕССИИ И ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
 // ==========================================
+// 2. В СЛУШАТЕЛЕ АВТОРИЗАЦИИ НАЙДИ auth.onAuthStateChanged И СДЕЛАЙ ТАК:
 auth.onAuthStateChanged(user => {
     const btnAdmin = document.getElementById('btn-admin-panel');
     const btnProfile = document.getElementById('btn-profile-edit');
-    const authButtons = document.getElementById('auth-buttons');
-    const userMenu = document.getElementById('user-menu');
+    const authButtons = document.getElementById('auth-buttons'); // Контейнер кнопок войти/рег
     
     if (user) {
         db.ref('users/' + user.uid).on('value', snapshot => {
@@ -132,34 +132,29 @@ auth.onAuthStateChanged(user => {
             currentUserData.uid = user.uid;
             
             if (currentUserData.isBanned) {
-                alert("🔴 Ваш аккаунт заблокирован на данном форуме!");
-                auth.signOut().then(() => { location.reload(); });
+                alert("Вы забанены!");
+                auth.signOut();
                 return;
             }
             
-            if(document.getElementById('edit-username')) document.getElementById('edit-username').value = currentUserData.username || "";
-            if(document.getElementById('profile-avatar-preview')) document.getElementById('profile-avatar-preview').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
-            if(document.getElementById('profile-banner-preview')) {
-                const b = currentUserData.banner || "";
-                document.getElementById('profile-banner-preview').style.backgroundImage = b ? `url('${b}')` : "none";
-            }
+            // ПРИ ВХОДЕ: Скрываем весь блок с кнопками
+            if (authButtons) authButtons.style.display = 'none'; 
             
-            if (authButtons) authButtons.classList.add('hidden'); // Автоматически скрываем кнопки Войти/Рег
-            if (userMenu) userMenu.classList.remove('hidden'); // Показываем меню пользователя
             if (btnProfile) btnProfile.classList.remove('hidden');
             if (document.getElementById('header-username')) document.getElementById('header-username').innerText = currentUserData.username || "Пользователь";
             if (document.getElementById('header-avatar')) document.getElementById('header-avatar').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
             
             if (btnAdmin) {
-                if (ADMIN_PANEL_ROLES.includes(currentUserData.role)) btnAdmin.classList.remove('hidden');
+                if (currentUserData.role === "Руководство проекта") btnAdmin.classList.remove('hidden');
                 else btnAdmin.classList.add('hidden');
             }
-            updateAdminButtonsVisibility();
         });
     } else {
         currentUserData = null;
-        if (authButtons) authButtons.classList.remove('hidden'); // Возвращаем кнопки если гость
-        if (userMenu) userMenu.classList.add('hidden');
+        
+        // ПРИ ВЫХОДЕ: Показываем блок кнопок заново
+        if (authButtons) authButtons.style.display = 'flex'; 
+        
         if (btnAdmin) btnAdmin.classList.add('hidden');
         if (btnProfile) btnProfile.classList.add('hidden');
     }
