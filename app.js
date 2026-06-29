@@ -2,7 +2,6 @@
 // 0. КОНФИГУРАЦИЯ И ИНИЦИАЛИЗАЦИЯ FIREBASE
 // ==========================================
 const firebaseConfig = {
-
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
     databaseURL: "https://ruscity-349e7-default-rtdb.europe-west1.firebasedatabase.app/",
@@ -52,6 +51,18 @@ let currentFactionId = null;
 let currentTopicId = null;
 let currentUserData = null;
 
+// Переменные для загружаемых файлов в профиле (объявлены, чтобы не вызывать ReferenceError)
+let avatarFile = null;
+let bannerFile = null;
+
+// СЛУШАТЕЛИ ВЫБОРА ФАЙЛОВ В ИНПУТАХ (для корректной работы проводника)
+document.addEventListener("DOMContentLoaded", () => {
+    const avatarInput = document.getElementById('file-avatar-input');
+    const bannerInput = document.getElementById('file-banner-input');
+    if (avatarInput) avatarInput.onchange = (e) => { avatarFile = e.target.files[0]; };
+    if (bannerInput) bannerInput.onchange = (e) => { bannerFile = e.target.files[0]; };
+});
+
 // ==========================================
 // СУПЕР-ПРАВА И ДОСТУПЫ С УЧЕТОМ СЕРВЕРА
 // ==========================================
@@ -96,10 +107,8 @@ auth.onAuthStateChanged(user => {
     const userMenu = document.getElementById('user-menu');
     
     if (user) {
-        // Устанавливаем статус Онлайн в БД
         const userStatusRef = db.ref(`users/${user.uid}/status`);
         userStatusRef.set("online");
-        // Если вкладка закроется — автоматически выставим offline
         userStatusRef.onDisconnect().set("offline");
 
         db.ref('users/' + user.uid).on('value', snapshot => {
@@ -144,40 +153,32 @@ function openProfileSettings() {
     if (!currentUserData) return alert("Вы должны быть авторизованы!");
     showScreen('screen-profile-edit');
     
-    document.getElementById('edit-username').value = currentUserData.username || "";
-    document.getElementById('edit-bio').value = currentUserData.bio || "";
-    document.getElementById('file-avatar-input').value = "";
-    document.getElementById('file-banner-input').value = "";
+    if (document.getElementById('edit-username')) document.getElementById('edit-username').value = currentUserData.username || "";
+    if (document.getElementById('edit-bio')) document.getElementById('edit-bio').value = currentUserData.bio || "";
+    if (document.getElementById('file-avatar-input')) document.getElementById('file-avatar-input').value = "";
+    if (document.getElementById('file-banner-input')) document.getElementById('file-banner-input').value = "";
 }
 
 async function saveProfileSettings() {
-    // 1. Находим кнопку сохранения
     const btnSave = document.getElementById('btnSave') || document.querySelector('button[onclick*="saveProfileSettings"]');
-
-    // 2. Находим инпут строго по ID, который теперь у нас есть
-    const nicknameInput = document.getElementById('nickname');
+    const nicknameInput = document.getElementById('edit-username'); // Исправлено на правильный ID формы настроек
     
-    // 3. Получаем значение ТОЛЬКО если инпут существует
     let nickname = "";
     if (nicknameInput) {
         nickname = nicknameInput.value.trim();
     } else {
-        console.error("Критическая ошибка: Инпут с id='nickname' не найден на этой странице!");
+        console.error("Критическая ошибка: Инпут с id='edit-username' не найден!");
         alert("Ошибка: Поле ввода никнейма не найдено.");
         return;
     }
 
-    // ЛОГИРОВАНИЕ ДЛЯ ПРОВЕРКИ В КЛИКЕ
     console.log("Проверяем никнейм перед отправкой. Введено букв:", nickname.length);
-    console.log("Текст внутри инпута:", nickname);
 
-    // 4. Проверяем длину (если поле действительно пустое или меньше 3 символов)
     if (!nickname || nickname.length <= 3) {
         alert("Никнейм должен быть более 3 символов");
         return; 
     }
 
-    // Если проверка прошла, блокируем кнопку и меняем текст
     if (btnSave) {
         btnSave.innerText = "⏳ Сохранение...";
         btnSave.disabled = true;
@@ -189,8 +190,9 @@ async function saveProfileSettings() {
             return;
         }
 
-        let avatarUrl = (currentUserData && currentUserData.avatar) || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
-        let bannerUrl = (currentUserData && currentUserData.banner) || "";
+        let avatarUrl = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
+        let bannerUrl = currentUserData.banner || "";
+        const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
         if (avatarFile) {
             const avatarRef = storage.ref(`avatars/${auth.currentUser.uid}_${Date.now()}`);
@@ -204,18 +206,19 @@ async function saveProfileSettings() {
             bannerUrl = await bannerRef.getDownloadURL();
         }
 
-        // Запись в Firestore Firebase
-        await db.collection("users").doc(auth.currentUser.uid).update({
+        // Обновление в Realtime Database (так как вы используете db.ref в остальном коде)
+        await db.ref('users/' + auth.currentUser.uid).update({
             username: nickname, 
             avatar: avatarUrl,
-            banner: bannerUrl
+            banner: bannerUrl,
+            bio: bioText
         });
 
         alert("Профиль успешно обновлен!");
         location.reload(); 
 
     } catch (error) {
-        console.error("Ошибка при сохранении в Firebase:", error);
+        console.error("Ошибка при сохранении:", error);
         alert("Произошла ошибка при сохранении профиля: " + error.message);
     } finally {
         if (btnSave) {
@@ -224,54 +227,6 @@ async function saveProfileSettings() {
         }
     }
 }
-
-    console.log("Никнейм прошел проверку:", nickname);
-    
-    // Проверяем, нашлась ли кнопка, прежде чем менять ей свойства
-    if (btnSave) {
-        btnSave.innerText = "⏳ Сохранение...";
-        btnSave.disabled = true;
-    }
-
-    try {
-        let avatarUrl = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
-        let bannerUrl = currentUserData.banner || "";
-
-        // Загрузка аватарки из проводника
-        if (avatarFile) {
-            const avatarRef = storage.ref(`avatars/${auth.currentUser.uid}_${Date.now()}`);
-            await avatarRef.put(avatarFile);
-            avatarUrl = await avatarRef.getDownloadURL();
-        }
-
-        // Загрузка баннера из проводника
-        if (bannerFile) {
-            const bannerRef = storage.ref(`banners/${auth.currentUser.uid}_${Date.now()}`);
-            await bannerRef.put(bannerFile);
-            bannerUrl = await bannerRef.getDownloadURL();
-        }
-
-        // Обновление данных в базе
-        await db.collection("users").doc(auth.currentUser.uid).update({
-            username: nickname, 
-            avatar: avatarUrl,
-            banner: bannerUrl
-        });
-
-        alert("Профиль успешно обновлен!");
-        location.reload(); 
-
-    } catch (error) {
-        console.error("Ошибка при сохранении:", error);
-        alert("Произошла ошибка при сохранении профиля.");
-    } finally {
-        if (btnSave) {
-            btnSave.innerText = "Сохранить изменения";
-            btnSave.disabled = false;
-        }
-    }
-}
-
 
 // ==========================================
 // СИСТЕМА ГЛОБАЛЬНОЙ СТАТИСТИКИ
@@ -288,12 +243,10 @@ db.ref('users').on('value', snapshot => {
         usersArray.push({ uid: uid, ...users[uid] });
     }
 
-    // Выводим счетчик текущего онлайна
     if (document.getElementById('stats-online-count')) {
         document.getElementById('stats-online-count').innerText = `${onlineCount} чел.`;
     }
 
-    // Сортируем по временной метке регистрации, чтобы найти первого и последнего
     usersArray.sort((a, b) => (a.registeredAt || 0) - (b.registeredAt || 0));
 
     if (usersArray.length > 0) {
@@ -326,30 +279,31 @@ function openPublicProfile(uid) {
         const user = snapshot.val(); 
         if (!user) return;
 
-        document.getElementById('public-username').innerText = user.username || "Профиль";
-        document.getElementById('public-avatar').src = user.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
-        document.getElementById('public-bio').innerText = user.bio || "Описание профиля не заполнено.";
+        if (document.getElementById('public-username')) document.getElementById('public-username').innerText = user.username || "Профиль";
+        if (document.getElementById('public-avatar')) document.getElementById('public-avatar').src = user.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
+        if (document.getElementById('public-bio')) document.getElementById('public-bio').innerText = user.bio || "Описание профиля не заполнено.";
         
         let displayRole = user.role || "Пользователь";
         if (user.isLeader) displayRole += " [Лидер]";
         if (user.isSubLeader) displayRole += " [Заместитель]";
-        document.getElementById('public-role').innerText = displayRole;
+        if (document.getElementById('public-role')) document.getElementById('public-role').innerText = displayRole;
         
         const bannerEl = document.getElementById('public-banner');
         if (bannerEl) bannerEl.style.backgroundImage = user.banner ? `url('${user.banner}')` : 'none';
-        document.getElementById('btn-profile-like').innerText = `❤️ Лайков: ${user.likes || 0}`;
+        if (document.getElementById('btn-profile-like')) document.getElementById('btn-profile-like').innerText = `❤️ Лайков: ${user.likes || 0}`;
 
-        // Живой статус онлайна в чужом профиле
         const dot = document.getElementById('public-online-indicator');
         const txt = document.getElementById('public-online-text');
-        if (user.status === "online") {
-            dot.className = "status-dot status-online";
-            txt.innerText = "В сети";
-            txt.style.color = "var(--success-color)";
-        } else {
-            dot.className = "status-dot status-offline";
-            txt.innerText = "Не в сети";
-            txt.style.color = "var(--danger-color)";
+        if (dot && txt) {
+            if (user.status === "online") {
+                dot.className = "status-dot status-online";
+                txt.innerText = "В сети";
+                txt.style.color = "var(--success-color)";
+            } else {
+                dot.className = "status-dot status-offline";
+                txt.innerText = "Не в сети";
+                txt.style.color = "var(--danger-color)";
+            }
         }
     });
     loadProfileComments();
@@ -418,7 +372,7 @@ function loadServers() {
 function openServerCategories(serverId, serverName) {
     currentServerId = serverId;
     if (document.getElementById('current-server-title')) document.getElementById('current-server-title').innerText = serverName;
-    const container = document.getElementById('categories-list'); container.innerHTML = '';
+    const container = document.getElementById('categories-list'); if (!container) return; container.innerHTML = '';
     const categories = [
         { id: 'gov', name: '🏢 Государственные организации', icon: '💼' },
         { id: 'crime', name: '🥷 Криминальные организации', icon: '🔪' },
@@ -437,7 +391,7 @@ function openCategoryFactions(catId, catName) {
     currentCategoryId = catId;
     if (document.getElementById('current-category-title')) document.getElementById('current-category-title').innerText = catName;
     if (document.getElementById('btn-back-to-categories')) document.getElementById('btn-back-to-categories').onclick = () => showScreen('screen-categories');
-    document.getElementById('create-faction-form').classList.add('hidden');
+    if (document.getElementById('create-faction-form')) document.getElementById('create-faction-form').classList.add('hidden');
     updateActionButtonsVisibility(); loadFactions(); showScreen('screen-factions');
 }
 
@@ -455,16 +409,16 @@ function loadFactions() {
     });
 }
 
-function toggleFactionForm() { document.getElementById('create-faction-form').classList.toggle('hidden'); }
+function toggleFactionForm() { const f = document.getElementById('create-faction-form'); if (f) f.classList.toggle('hidden'); }
 function createNewFaction() {
-    const input = document.getElementById('new-faction-name'); const name = input.value.trim(); if (!name) return alert("Введите название фракции!");
-    db.ref(`factions/${currentServerId}/${currentCategoryId}`).push({ name: name }).then(() => { input.value = ''; document.getElementById('create-faction-form').classList.add('hidden'); });
+    const input = document.getElementById('new-faction-name'); if (!input) return; const name = input.value.trim(); if (!name) return alert("Введите название фракции!");
+    db.ref(`factions/${currentServerId}/${currentCategoryId}`).push({ name: name }).then(() => { input.value = ''; const f = document.getElementById('create-faction-form'); if (f) f.classList.add('hidden'); });
 }
 
 function openFactionScreen(factionName) {
     if (document.getElementById('current-faction-title')) document.getElementById('current-faction-title').innerText = factionName;
     if (document.getElementById('btn-back-to-factions')) document.getElementById('btn-back-to-factions').onclick = () => currentServerId === "info" ? showScreen('screen-forum') : showScreen('screen-factions');
-    document.getElementById('create-topic-form').classList.add('hidden');
+    if (document.getElementById('create-topic-form')) document.getElementById('create-topic-form').classList.add('hidden');
     updateActionButtonsVisibility(); loadTopics(); showScreen('screen-topics');
 }
 
@@ -485,10 +439,10 @@ function loadTopics() {
     });
 }
 
-function toggleTopicForm() { document.getElementById('create-topic-form').classList.toggle('hidden'); }
+function toggleTopicForm() { const f = document.getElementById('create-topic-form'); if (f) f.classList.toggle('hidden'); }
 function createNewTopic() {
-    const input = document.getElementById('new-topic-name'); const name = input.value.trim(); if (!name) return alert("Название темы пустое!");
-    db.ref(`topics/${currentServerId}/${currentCategoryId}/${currentFactionId}`).push({ name: name, content: "Контент темы пуст." }).then(() => { input.value = ''; document.getElementById('create-topic-form').classList.add('hidden'); });
+    const input = document.getElementById('new-topic-name'); if (!input) return; const name = input.value.trim(); if (!name) return alert("Название темы пустое!");
+    db.ref(`topics/${currentServerId}/${currentCategoryId}/${currentFactionId}`).push({ name: name, content: "Контент темы пуст." }).then(() => { input.value = ''; const f = document.getElementById('create-topic-form'); if (f) f.classList.add('hidden'); });
 }
 
 function deleteTopic(id) {
@@ -506,8 +460,8 @@ function deleteCurrentTopic() {
 function openTopicView(topicId, topicName) {
     currentTopicId = topicId;
     if (document.getElementById('topic-view-title')) document.getElementById('topic-view-title').innerText = topicName;
-    document.getElementById('create-subtopic-form').classList.add('hidden');
-    document.getElementById('topic-editor-inputs').classList.add('hidden');
+    if (document.getElementById('create-subtopic-form')) document.getElementById('create-subtopic-form').classList.add('hidden');
+    if (document.getElementById('topic-editor-inputs')) document.getElementById('topic-editor-inputs').classList.add('hidden');
     updateActionButtonsVisibility();
     db.ref(`topics/${currentServerId}/${currentCategoryId}/${currentFactionId}/${currentTopicId}`).on('value', snapshot => {
         const topic = snapshot.val(); if (!topic) return;
@@ -518,10 +472,13 @@ function openTopicView(topicId, topicName) {
 }
 
 function backFromTopicView() { showScreen('screen-topics'); }
-function toggleSubTopicForm() { document.getElementById('create-subtopic-form').classList.toggle('hidden'); }
+// Добавлена отсутствующая общая функция очистки экранов при выходе на главную
+function backToHome() { currentServerId = null; currentCategoryId = null; currentFactionId = null; currentTopicId = null; showScreen('screen-forum'); }
+
+function toggleSubTopicForm() { const f = document.getElementById('create-subtopic-form'); if (f) f.classList.toggle('hidden'); }
 function createNewSubTopic() {
-    const input = document.getElementById('new-subtopic-name'); const name = input.value.trim(); if (!name) return alert("Заполните имя!");
-    db.ref(`subtopics/${currentTopicId}`).push({ name: name, content: "Контент подраздела пуст." }).then(() => { input.value = ''; document.getElementById('create-subtopic-form').classList.add('hidden'); });
+    const input = document.getElementById('new-subtopic-name'); if (!input) return; const name = input.value.trim(); if (!name) return alert("Заполните имя!");
+    db.ref(`subtopics/${currentTopicId}`).push({ name: name, content: "Контент подраздела пуст." }).then(() => { input.value = ''; const f = document.getElementById('create-subtopic-form'); if (f) f.classList.add('hidden'); });
 }
 
 function loadSubTopics() {
@@ -542,7 +499,7 @@ function loadSubTopics() {
     });
 }
 
-function toggleTopicEditor() { document.getElementById('topic-editor-inputs').classList.toggle('hidden'); }
+function toggleTopicEditor() { const e = document.getElementById('topic-editor-inputs'); if (e) e.classList.toggle('hidden'); }
 function formatText(command, value = null) { document.execCommand(command, false, value); }
 function saveTopicContent() {
     const richContent = document.getElementById('editor-rich-content').innerHTML;
@@ -555,23 +512,46 @@ function saveTopicContent() {
     });
 }
 
-function registerUser() {
-    const usernameInput = document.getElementById('reg-username').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const password = document.getElementById('reg-password').value.trim();
+// ==========================================
+// ИСПРАВЛЕННАЯ СИСТЕМА РЕГИСТРАЦИИ (ДОБАВЛЕН ASYNC)
+// ==========================================
+async function registerUser() {
+    const usernameInput = document.getElementById('reg-username') ? document.getElementById('reg-username').value.trim() : "";
+    const email = document.getElementById('reg-email') ? document.getElementById('reg-email').value.trim() : "";
+    const password = document.getElementById('reg-password') ? document.getElementById('reg-password').value.trim() : "";
+    
     if (!usernameInput || !email || !password) return alert("Заполните все поля!");
-    if (!usernameInput.length < 3) return alert("Формат должен быть Nick!");
-    auth.createUserWithEmailAndPassword(email, password).then(cred => {
-        return db.ref('users/' + cred.user.uid).set({
-            username: usernameInput, email: email, role: "Пользователь", isLeader: false, isSubLeader: false,
-            leaderFaction: "", leaderServer: "", avatar: "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png", banner: "", isBanned: false, likes: 0, bio: "", status: "online", registeredAt: firebase.database.ServerValue.TIMESTAMP
+    if (usernameInput.length < 3) return alert("Формат должен быть более 3-х символов!");
+    
+    try {
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        await db.ref('users/' + cred.user.uid).set({
+            username: usernameInput, 
+            email: email, 
+            role: "Пользователь", 
+            isLeader: false, 
+            isSubLeader: false,
+            leaderFaction: "", 
+            leaderServer: "", 
+            avatar: "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png", 
+            banner: "", 
+            isBanned: false, 
+            likes: 0, 
+            bio: "", 
+            status: "online", 
+            registeredAt: firebase.database.ServerValue.TIMESTAMP
         });
-    }).then(() => { alert("Успешно!"); showScreen('screen-forum'); }).catch(err => alert(err.message));
+        
+        alert("Успешно!"); 
+        showScreen('screen-forum');
+    } catch(err) {
+        alert(err.message);
+    }
 }
 
 function loginUser() {
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value.trim();
+    const email = document.getElementById('login-email') ? document.getElementById('login-email').value.trim() : "";
+    const password = document.getElementById('login-password') ? document.getElementById('login-password').value.trim() : "";
     if (!email || !password) return alert("Заполните поля!");
     auth.signInWithEmailAndPassword(email, password).then(cred => {
         db.ref(`users/${cred.user.uid}/status`).set("online");
@@ -585,7 +565,7 @@ function logout() {
 }
 
 function toggleProfileLike() {
-    if (!auth.currentUser) return alert("Войдите на форум!"); if (auth.currentUser.uid === viewTargetUid) return alert("Нельзя лайкать себя!");
+    if (!auth.currentUser) return alert("Войдите на forum!"); if (auth.currentUser.uid === viewTargetUid) return alert("Нельзя лайкать себя!");
     const likeRef = db.ref(`profile_likes/${viewTargetUid}/${auth.currentUser.uid}`);
     const userLikesRef = db.ref(`users/${viewTargetUid}/likes`);
     likeRef.once('value', snapshot => {
@@ -598,7 +578,7 @@ function toggleProfileLike() {
 
 function sendProfileComment() {
     if (!auth.currentUser) return alert("Авторизуйтесь!");
-    const textInput = document.getElementById('new-profile-comment'); const text = textInput.value.trim(); if (!text) return alert("Текст пуст!");
+    const textInput = document.getElementById('new-profile-comment'); if (!textInput) return; const text = textInput.value.trim(); if (!text) return alert("Текст пуст!");
     db.ref(`profile_walls/${viewTargetUid}`).push({
         senderUid: auth.currentUser.uid, senderName: currentUserData.username || "Аноним",
         senderAvatar: currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png", text: text, timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -639,7 +619,7 @@ function openAdminPanel() {
 }
 function loadAdminUsers() { db.ref('users').on('value', snapshot => { allUsersCache = snapshot.val() || {}; renderAdminUsersList(allUsersCache); }); }
 function renderAdminUsersList(usersData) {
-    const container = document.getElementById('admin-users-list'); container.innerHTML = '';
+    const container = document.getElementById('admin-users-list'); if (!container) return; container.innerHTML = '';
     for (let uid in usersData) {
         const u = usersData[uid]; const card = document.createElement('div'); card.className = 'forum-section-card'; card.style.background = '#1e2530'; card.style.flexDirection = 'column'; card.style.alignItems = 'stretch'; card.style.gap = '15px';
         let roleOptionsHtml = '';
@@ -690,14 +670,13 @@ function updateLeaderStatus(uid, field, value) { db.ref(`users/${uid}/${field}`)
 function updateUserFaction(uid, factionName) { db.ref(`users/${uid}/leaderFaction`).set(factionName); }
 function updateUserServer(uid, serverId) { db.ref(`users/${uid}/leaderServer`).set(serverId); }
 function showNotification(message) {
-    const container = document.getElementById('notification-container');
+    const container = document.getElementById('notification-container'); if (!container) return;
     const toast = document.createElement('div');
     toast.className = 'toast-success';
     toast.innerHTML = `<span>✅</span> ${message}`;
     
     container.appendChild(toast);
 
-    // Удаляем уведомление через 3 секунды
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(20px)';
