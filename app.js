@@ -150,7 +150,7 @@ function openProfileSettings() {
     document.getElementById('file-banner-input').value = "";
 }
 
-function saveProfileSettings() {
+async function saveProfileSettings() {
     // 1. Сначала находим поле ввода (инпут) на странице. 
     // Если у инпута другой id, например id="username", замените 'nickname' на 'username'
     const nicknameInput = document.getElementById('nickname') || document.getElementById('username') || document.querySelector('input[type="text"]');
