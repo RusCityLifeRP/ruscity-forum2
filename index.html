@@ -18,6 +18,7 @@
         
         <nav class="header-nav">
             <button onclick="showScreen('screen-forum')" class="nav-link">Главная</button>
+            <button id="btn-profile-edit" class="nav-link hidden" onclick="showScreen('screen-profile')">Настройки профиля</button>
             <button id="btn-admin-panel" class="nav-link hidden" onclick="openAdminPanel()">Админ-панель</button>
         </nav>
 
@@ -26,8 +27,8 @@
                 <button onclick="showScreen('screen-login')" class="btn-primary">Войти</button>
             </div>
             <div id="user-menu" class="user-profile-menu hidden">
-                <img id="header-avatar" src="" alt="Аватар" class="profile-avatar-mini">
-                <span id="header-username" class="profile-username-text">Загрузка...</span>
+                <img id="header-avatar" src="" alt="Аватар" class="profile-avatar-mini" onclick="showScreen('screen-profile')" style="cursor:pointer;">
+                <span id="header-username" class="profile-username-text" onclick="showScreen('screen-profile')" style="cursor:pointer;">Загрузка...</span>
                 <button onclick="logout()" class="btn-logout">Выйти</button>
             </div>
         </div>
@@ -46,6 +47,20 @@
                 <input type="email" id="login-email" placeholder="Электронная почта">
                 <input type="password" id="login-password" placeholder="Пароль">
                 <button class="btn-primary" onclick="loginUser()">Войти</button>
+            </div>
+        </div>
+
+        <div id="screen-profile" class="screen hidden">
+            <h2>Редактирование профиля</h2>
+            <div class="form-group">
+                <label>Ваш никнейм на форуме:</label>
+                <input type="text" id="edit-username" placeholder="Новое имя">
+                
+                <label>Ссылка на URL аватарки:</label>
+                <input type="text" id="edit-avatar" placeholder="https://ссылка-на-картинку.jpg">
+                
+                <button class="btn-primary" onclick="saveProfileChanges()">Сохранить изменения</button>
+                <button class="btn-secondary" onclick="showScreen('screen-forum')">Отмена</button>
             </div>
         </div>
 
