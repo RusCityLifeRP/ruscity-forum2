@@ -151,21 +151,37 @@ function openProfileSettings() {
 }
 
 async function saveProfileSettings() {
-    // 1. Находим кнопку сохранения, чтобы менять её текст (ИСПРАВЛЕНИЕ ТУТ)
-    // Ищем кнопку по ID 'btnSave', если ID другой — скрипт попробует найти её по тексту внутри
+    // 1. Находим кнопку сохранения
     const btnSave = document.getElementById('btnSave') || document.querySelector('button[onclick*="saveProfileSettings"]');
 
-    // 2. Сначала находим поле ввода (инпут) на странице.
-    const nicknameInput = document.getElementById('nickname') || document.getElementById('username') || document.querySelector('input[type="text"]');
-    
-    // 3. Получаем само значение из инпута
+    // 2. Ищем инпут по уникальным признакам (id, классу или тексту подсказки внутри)
+    const nicknameInput = 
+        document.getElementById('nickname') || 
+        document.getElementById('username') || 
+        document.querySelector('input[placeholder*="ник"]') || // Ищет инпут, где в подсказке есть слово "ник"
+        document.querySelector('input[placeholder*="Nick"]') || // Ищет инпут со словом "Nick"
+        document.querySelector('.profile-settings input[type="text"]') || // Ищет инпут внутри блока настроек
+        document.querySelectorAll('input[type="text"]')[0]; // Крайний случай — самый первый инпут
+
+    // 3. Получаем значение
     const nickname = nicknameInput ? nicknameInput.value.trim() : "";
+
+    // ВЫВОДИМ В КОНСОЛЬ ДЛЯ ПРОВЕРКИ: какой именно элемент мы нашли и что внутри него
+    console.log("Найденный элемент инпута:", nicknameInput);
+    console.log("Фактическое значение никнейма:", nickname);
 
     // 4. Проверяем длину
     if (!nickname || nickname.length <= 3) {
         alert("Никнейм должен быть более 3 символов");
         return; 
     }
+
+    // Дальше ваш старый код...
+    if (btnSave) {
+        btnSave.innerText = "⏳ Сохранение...";
+        btnSave.disabled = true;
+    }
+
 
     console.log("Никнейм прошел проверку:", nickname);
     
