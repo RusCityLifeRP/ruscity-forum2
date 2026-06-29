@@ -141,3 +141,6 @@ body {
 .topic-body-text { font-size: 16px; line-height: 1.6; white-space: pre-wrap; }
 .btn-danger { background: #e53e3e; }
 .btn-success { background: #38a169; }
+.hidden {
+    display: none !important;
+}
