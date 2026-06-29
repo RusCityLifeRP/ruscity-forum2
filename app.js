@@ -749,7 +749,7 @@ function registerUser() {
     firebase.auth().createUserWithEmailAndPassword(email, pass)
         .then(userCredential => {
             const user = userCredential.user;
-            firebase.database()ref('users/' + user.uid).set({
+            firebase.database().ref('users/' + user.uid).set({
                 username: username,
                 role: "Пользователь",
                 avatar: "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png",
