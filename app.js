@@ -176,14 +176,23 @@ async function saveProfileSettings() {
     }
 
     if (btnSave) {
-        btnSave.innerText = "⏳ Подготовка...";
+        btnSave.innerText = "⏳ Сохранение...";
         btnSave.disabled = true;
     }
+
+    // Вспомогательная функция для перевода файла в байты (Uint8Array)
+    const fileToUint8Array = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(new Uint8Array(e.target.result));
+            reader.onerror = (err) => reject(err);
+            reader.readAsArrayBuffer(file);
+        });
+    };
 
     try {
         if (!auth.currentUser) {
             alert("Ошибка: Вы не авторизованы!");
-            if (btnSave) { btnSave.disabled = false; btnSave.innerText = "Сохранить изменения"; }
             return;
         }
 
@@ -192,34 +201,36 @@ async function saveProfileSettings() {
         let bannerUrl = (currentUserData && currentUserData.banner) || "";
         const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
-        // 1. ЗАГРУЗКА АВАТАРКИ (с отслеживанием ошибок)
+        // БЕЗОПАСНАЯ ЗАГРУЗКА АВАТАРКИ ЧЕРЕЗ БАЙТЫ
         if (avatarFile) {
             if (btnSave) btnSave.innerText = "⏳ Загрузка аватарки...";
-            try {
-                const avatarRef = storage.ref().child(`avatars/${uid}_${Date.now()}`);
-                const snapshot = await avatarRef.put(avatarFile);
-                avatarUrl = await snapshot.ref.getDownloadURL();
-            } catch (storageErr) {
-                console.error("Ошибка Storage при загрузке аватарки:", storageErr);
-                throw new Error("Не удалось загрузить аватарку в Storage. Проверьте правила Rules в Firebase Консоли.");
-            }
+            const fileName = `${uid}_${Date.now()}`;
+            const avatarRef = storage.ref().child('avatars').child(fileName);
+            
+            // Преобразуем файл в байты, чтобы обойти блокировки CORS
+            const fileBytes = await fileToUint8Array(avatarFile);
+            const metadata = { contentType: avatarFile.type };
+            
+            const snapshot = await avatarRef.put(fileBytes, metadata);
+            avatarUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // 2. ЗАГРУЗКА БАННЕРА (с отслеживанием ошибок)
+        // БЕЗОПАСНАЯ ЗАГРУЗКА БАННЕРА ЧЕРЕЗ БАЙТЫ
         if (bannerFile) {
             if (btnSave) btnSave.innerText = "⏳ Загрузка баннера...";
-            try {
-                const bannerRef = storage.ref().child(`banners/${uid}_${Date.now()}`);
-                const snapshot = await bannerRef.put(bannerFile);
-                bannerUrl = await snapshot.ref.getDownloadURL();
-            } catch (storageErr) {
-                console.error("Ошибка Storage при загрузке баннера:", storageErr);
-                throw new Error("Не удалось загрузить баннер в Storage. Проверьте правила Rules в Firebase Консоли.");
-            }
+            const fileName = `${uid}_${Date.now()}`;
+            const bannerRef = storage.ref().child('banners').child(fileName);
+            
+            // Преобразуем файл в байты
+            const fileBytes = await fileToUint8Array(bannerFile);
+            const metadata = { contentType: bannerFile.type };
+            
+            const snapshot = await bannerRef.put(fileBytes, metadata);
+            bannerUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // 3. ОБНОВЛЕНИЕ БАЗЫ ДАННЫХ
-        if (btnSave) btnSave.innerText = "⏳ Сохранение в БД...";
+        // ЗАПИСЬ ДАННЫХ В REALTIME DATABASE
+        if (btnSave) btnSave.innerText = "⏳ Запись в базу данных...";
         await db.ref('users/' + uid).update({
             username: nickname, 
             avatar: avatarUrl,
@@ -231,8 +242,8 @@ async function saveProfileSettings() {
         location.reload(); 
 
     } catch (error) {
-        console.error("Глобальная ошибка функции сохранения:", error);
-        alert("Ошибка при сохранении: " + error.message);
+        console.error("Критическая ошибка при сохранении:", error);
+        alert("Не удалось сохранить изменения. Ошибка: " + error.message);
     } finally {
         if (btnSave) {
             btnSave.innerText = "Сохранить изменения";
