@@ -127,8 +127,13 @@ function openSection(sectionId) {
     document.getElementById('topic-form-block').classList.add('hidden');
 
     const btnCreate = document.getElementById('btn-create-topic');
-    if (currentUserData) btnCreate.classList.remove('hidden');
-    else btnCreate.classList.add('hidden');
+    
+    // ПРОВЕРКА ПРАВ: Показываем кнопку создания только если это руководство
+    if (isProjectManagement()) {
+        btnCreate.classList.remove('hidden');
+    } else {
+        btnCreate.classList.add('hidden');
+    }
 
     db.ref(`topics/${currentServerId}/${sectionId}`).on('value', snapshot => {
         const topicsList = document.getElementById('topics-list');
@@ -148,6 +153,7 @@ function openSection(sectionId) {
         });
     });
 }
+
 
 function showTopicForm() { 
     document.getElementById('topic-form-block').classList.toggle('hidden'); 
@@ -288,8 +294,29 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function saveProfile() {
-    let up = { username: document.getElementById('edit-name').value.trim(), description: document.getElementById('edit-desc').value.trim(), role: document.getElementById('edit-role-tag').value };
-    if (base64Avatar) up.avatar = base64Avatar;
-    if (base64Banner) up.banner = base64Banner;
-    db.ref('users/' + currentUserData.uid).update(up).then(() => openProfile(currentUserData.uid));
+    const newName = document.getElementById('edit-name').value.trim();
+    const newDesc = document.getElementById('edit-desc').value.trim();
+    const newRole = document.getElementById('edit-role-tag').value;
+
+    let updateData = { 
+        username: newName, 
+        description: newDesc 
+    };
+
+    // Только если пользователь — Руководство, применяем новую роль
+    if (isProjectManagement()) {
+        updateData.role = newRole;
+    } else {
+        // Иначе принудительно оставляем текущую роль
+        updateData.role = currentUserData.role; 
+    }
+
+    if (base64Avatar) updateData.avatar = base64Avatar;
+    if (base64Banner) updateData.banner = base64Banner;
+
+    db.ref('users/' + currentUserData.uid).update(updateData).then(() => {
+        alert("Профиль успешно обновлен");
+        openProfile(currentUserData.uid);
+    });
 }
+
