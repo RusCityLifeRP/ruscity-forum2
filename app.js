@@ -23,9 +23,9 @@ const ROLES = [
 // Список ролей, которые считаются Администрацией форума
 const ADMIN_PANEL_ROLES = ["Руководство проекта", "Специальный администратор", "Главный администратор", "Заместитель главного администратора"];
 
-// Обновленный предустановленный список фракций под твои названия
+// Полностью обновленный список фракций строго по твоим названиям
 const LEADER_FACTIONS_LIST = [
-    "Правительство", 
+    "правительство", 
     "ГИБДД", 
     "Центральная городская больница 7", 
     "Центральная городская больница 3", 
@@ -60,26 +60,25 @@ let isGlobalInfoZone = false;
 let viewedProfileUid = "";
 
 // ==========================================
-// 1.5 ИСПРАВЛЕННАЯ ПРОВЕРКА ПРАВ (БЕЗ ЧУВСТВИТЕЛЬНОСТИ К РЕГИСТРУ)
+// 1.5 НАДЕЖНАЯ ПРОВЕРКА ПРАВ ЛИДЕРА
 // ==========================================
 function checkModerationRights() {
     if (!currentUserData) return false;
     
-    // Руководство проекта может всё и везде
+    // Руководство проекта может модерировать везде
     if (currentUserData.role === "Руководство проекта") return true;
 
-    // В глобальных правилах и законах лидеры ничего редактировать не могут
+    // В глобальных инфо-зонах лидеры не редактируют
     if (isGlobalInfoZone) return false;
 
-    // Если данные о текущей фракции или сервере не подтянулись, блокируем
+    // Блокируем, если не определился сервер или фракция
     if (!selectedServerName || !selectedFactionName) return false;
 
-    // Переводим абсолютно всё в нижний регистр и убираем лишние пробелы
     const userRoleLower = (currentUserData.role || "").toLowerCase().trim();
     const serverLower = selectedServerName.toLowerCase().trim();
     const factionLower = selectedFactionName.toLowerCase().trim();
 
-    // Проверяем строгое совпадение по ключевым словам
+    // Сверяем ключевые слова: город + слово "лидер" + название фракции
     if (userRoleLower.includes(serverLower) && userRoleLower.includes("лидер") && userRoleLower.includes(factionLower)) {
         return true;
     }
@@ -293,7 +292,7 @@ function openCategoryFactions(catId, catName) {
             item.style.borderLeft = "4px solid #3b82f6";
             item.onclick = () => openFactionTopics(fId, data[fId].name, "server");
             
-            let deleteBtn = isLeader ? `<button class="btn-delete-item" onclick="deleteFaction('${fId}'); event.stopPropagation();">❌ ...</button>` : '';
+            let deleteBtn = isLeader ? `<button class="btn-delete-item" onclick="deleteFaction('${fId}'); event.stopPropagation();">❌ Удалить</button>` : '';
             
             item.innerHTML = `
                 <div class="item-text-area">
@@ -460,7 +459,7 @@ function toggleHideServer(id, stat) {
 }
 
 // ==========================================
-// 6. СТЕНЫ, КОММЕНТАРИИ И ЛАЙКИ ИГРОКОВ
+// 6. СТЕНЫ И КОММЕНТАРИИ ПРОФИЛЕЙ
 // ==========================================
 function openPublicProfile(uid) {
     viewedProfileUid = uid;
@@ -576,7 +575,7 @@ function renderAdminUsers(usersData) {
 
                 <div style="display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
                     <span style="font-size:12px; color:#8a99ad; width:120px;">Ввести вручную:</span>
-                    <input type="text" placeholder="Пример: Сочи Лидер Москва LIVE" style="flex-grow:1; padding:5px 10px; font-size:12px;" id="custom-role-${uid}">
+                    <input type="text" placeholder="Пример: Сочи Лидер правительство" style="flex-grow:1; padding:5px 10px; font-size:12px;" id="custom-role-${uid}">
                     <button class="btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="assignCustomLeaderRole('${uid}')">Ок</button>
                 </div>
             </div>
@@ -604,7 +603,6 @@ function assignSelectLeaderRole(uid) {
     openAdminPanel();
 }
 
-// Поиск и фильтрация пользователей в админке
 function filterAdminUsers() {
     const query = document.getElementById('admin-search-user').value.toLowerCase().trim();
     if (!query) { renderAdminUsers(allUsersCache); return; }
