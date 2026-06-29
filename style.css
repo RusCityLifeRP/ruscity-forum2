@@ -16,38 +16,37 @@ body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    font-family: 'Arial', sans-serif; /* или твой шрифт */
+    font-family: 'Ubuntu', 'Arial', sans-serif; /* Шрифт Ubuntu отлично подходит под RP тематику */
     
-    /* Добавляем фоновые изображения городов через запятую */
-    background-image: 
-        /* 1. Слой сильного затемнения (черный с прозрачностью 75%) */
-        linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
-        /* 2. Коллаж из трех городов (ссылки на качественные темные арты/фото) */
-        url('https://images.unsplash.com/photo-1547448415-e9f5b28e570d?q=80&w=600&auto=format&fit=crop'), /* Москва */
-        url('https://images.unsplash.com/photo-1556624073-2e42c2cf1d50?q=80&w=600&auto=format&fit=crop'), /* СПб */
-        url('https://images.unsplash.com/photo-1568233777407-7d5df2f73719?q=80&w=600&auto=format&fit=crop'); /* Сочи */
-
-    /* Настройки расположения: Москва слева, Питер по центру, Сочи справа */
-    background-position: center, left bottom, center bottom, right bottom;
+    /* Красивый темный градиент с глубоким сине-бордовым свечением по углам */
+    background: radial-gradient(circle at top right, rgba(255, 75, 75, 0.07), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(0, 123, 255, 0.08), transparent 40%),
+                linear-gradient(135deg, #14171c 0%, #0b0c10 100%);
     
-    /* Размеры: каждый город занимает примерно 33% ширины экрана, чтобы они встали в ряд */
-    background-size: cover, 35% auto, 35% auto, 35% auto;
-    
-    /* Запрещаем картинкам повторяться */
-    background-repeat: no-repeat;
-    
-    /* Делаем фон фиксированным, чтобы при скролле форума он не двигался */
     background-attachment: fixed;
-    
-    color: #fff; /* Делаем текст белым, так как фон теперь очень темный */
+    color: #f5f6f7;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Рекомендуется: немного затемнить и скруглить блоки самого форума, чтобы они читались идеально */
-.screen, .forum-header, .forum-container {
-    background: rgba(20, 24, 33, 0.85) !important; /* Темная плашка */
-    backdrop-filter: blur(10px); /* Эффект размытия стекла за блоками */
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+/* Делаем плашки серверов и форума нереально стильными (эффект темного стекла / Glassmorphism) */
+.screen, .forum-header, .forum-container, .sections-list > div {
+    background: rgba(22, 26, 34, 0.65) !important;
+    backdrop-filter: blur(12px); /* Сильное размытие заднего плана */
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.03); /* Очень тонкая и мягкая рамка */
+    border-radius: 12px; /* Современные скругленные углы */
+    padding: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); /* Мягкая глубокая тень */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Красивый эффект подсветки при наведении на разделы или карточки серверов */
+.sections-list > div:hover {
+    background: rgba(28, 33, 43, 0.8) !important;
+    border: 1px solid rgba(255, 75, 75, 0.15); /* Плавная красная подсветка границ */
+    transform: translateY(-2px); /* Карточка слегка приподнимается */
+    box-shadow: 0 12px 38px 0 rgba(255, 75, 75, 0.05);
+
     
 }
 
