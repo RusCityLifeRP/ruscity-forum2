@@ -4,270 +4,416 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RusCity Life RP — Форум</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- Подключаем Firebase (Legacy SDK, используемый в твоем скрипте) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
+    <!-- Стили встроенные, чтобы всё заработало в одном файле (включая сочные плитки) -->
+    <style>
+        :root {
+            --bg-main: #0b0f17;
+            --bg-card: #18202c;
+            --bg-card-hover: #1f293d;
+            --border-color: #2d3748;
+            --text-color: #f1f5f9;
+            --text-muted: #8a99ad;
+            --primary-color: #3b82f6;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-color);
+        }
+
+        header {
+            background-color: #111827;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .logo span { color: #f97316; }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 18px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background-color: #374151; color: white; }
+        .btn-secondary:hover { background-color: #4b5563; }
+        .btn-logout { background-color: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
+        .btn-logout:hover { background-color: rgba(239, 68, 68, 0.3); }
+
+        .hidden { display: none !important; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        
+        h2, h3 { margin-bottom: 20px; border-left: 4px solid var(--primary-color); padding-left: 10px; }
+
+        /* --- СЕТКА ПЛИТОК --- */
+        #info-sections-list, #servers-list, #categories-list, #factions-list, #topics-list, #subtopics-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 15px;
+            margin-bottom: 30px;
+        }
+
+        .forum-section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .item-clickable { cursor: pointer; }
+        .item-clickable:hover {
+            background: var(--bg-card-hover);
+            border-color: #4a5568;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .forum-section-card .section-icon {
+            font-size: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 45px;
+            height: 45px;
+        }
+
+        .forum-section-card .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        /* Формы */
+        .form-block {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .form-block input, .form-block select, .form-block textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            background: #111827;
+            border: 1px solid var(--border-color);
+            color: white;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* Текстовый редактор тем */
+        .rich-editor {
+            min-height: 200px;
+            background: #111827;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 4px;
+            color: white;
+            margin-bottom: 15px;
+        }
+        .editor-tools { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
+        .editor-tools button { padding: 5px 10px; font-size: 12px; }
+
+        /* Профили */
+        .profile-banner {
+            height: 200px;
+            background-color: #1f293d;
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+        }
+        .profile-info-box {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border: 1px solid var(--border-color);
+            border-top: none;
+        }
+        .profile-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--bg-card);
+            margin-top: -50px;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #111827;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        .user-badge img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover;}
+
+        .empty-notify { color: var(--text-muted); font-style: italic; text-align: center; width: 100%; }
+    </style>
 </head>
 <body>
-    <header class="forum-header">
-        <div class="header-logo" onclick="showScreen('screen-forum')">
-            <span class="logo-main">RusCity</span><span class="logo-sub">Life RP</span>
-        </div>
-        
-        <nav class="header-nav">
-            <button onclick="showScreen('screen-forum')" class="nav-btn-modern">🏠 Главная</button>
-            <button id="btn-profile-edit" class="nav-btn-modern hidden" onclick="showScreen('screen-profile')">⚙️ Настройки</button>
-            <button id="btn-admin-panel" class="nav-btn-modern btn-admin-accent hidden" onclick="openAdminPanel()">👑 Админ-панель</button>
-        </nav>
-        <div class="auth-zone">
-            <!-- Блок кнопок для гостей -->
-            <div id="auth-buttons" style="display: flex; align-items: center; gap: 12px;">
-                <button onclick="showScreen('screen-login')" style="background: transparent; color: #a0aab8; border: 1px solid #3a4454; padding: 8px 18px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">Войти</button>
-                <button onclick="showScreen('screen-register')" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; border: none; padding: 9px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.2s ease;">Регистрация</button>
-            </div>
+
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ С НАВИГАЦИЕЙ -->
+    <header>
+        <div class="logo" onclick="showScreen('screen-forum')">RusCity<span>Life RP</span></div>
+        <div class="nav-buttons">
+            <button class="btn-secondary" onclick="showScreen('screen-forum')">🏠 Главная</button>
+            <button id="btn-admin-panel" class="btn-primary hidden" onclick="openAdminPanel()">⚙️ Админ-центр</button>
             
-            <!-- Блок авторизованного пользователя -->
-            <div id="user-menu" class="user-profile-menu hidden" onclick="if(auth.currentUser) openPublicProfile(auth.currentUser.uid)">
-                <img id="header-avatar" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Аватар" class="profile-avatar-mini">
-                <span id="header-username" class="profile-username-text">Загрузка...</span>
-                <button onclick="logout(); event.stopPropagation();" class="btn-logout">Выйти</button>
+            <!-- Если гость -->
+            <div id="auth-buttons" style="display: flex; gap: 10px;">
+                <button class="btn-secondary" onclick="showScreen('screen-login')">Вход</button>
+                <button class="btn-primary" onclick="showScreen('screen-register')">Регистрация</button>
+            </div>
+
+            <!-- Если авторизован -->
+            <div id="user-menu" class="user-badge hidden">
+                <img id="header-avatar" src="" alt="">
+                <span id="header-username" style="font-weight: 600; cursor: pointer;" onclick="openPublicProfile(auth.currentUser.uid)">Никнейм</span>
+                <button id="btn-profile-edit" class="btn-secondary hidden" style="padding: 5px 10px; font-size: 12px;" onclick="openProfileSettings()">Настройки</button>
+                <button class="btn-logout" style="padding: 5px 10px; font-size: 12px;" onclick="logout()">Выйти</button>
             </div>
         </div>
     </header>
-    <main class="forum-container">
-        
-        <!-- ЭКРАН 1: ГЛАВНЫЙ -->
+
+    <div class="container">
+
+        <!-- =================================================== -->
+        <!-- СЛУЖЕБНЫЕ ЭКРАНЫ АВТОРИЗАЦИИ                        -->
+        <!-- =================================================== -->
+        <div id="screen-login" class="screen form-block hidden">
+            <h2>Авторизация на форуме</h2>
+            <input type="email" id="login-email" placeholder="Электронная почта (Email)">
+            <input type="password" id="login-password" placeholder="Пароль">
+            <button class="btn-primary" onclick="loginUser()">Войти на аккаунт</button>
+        </div>
+
+        <div id="screen-register" class="screen form-block hidden">
+            <h2>Регистрация аккаунта</h2>
+            <input type="text" id="reg-username" placeholder="Игровой ник в формате: Nick_Name">
+            <input type="email" id="reg-email" placeholder="Электронная почта (Email)">
+            <input type="password" id="reg-password" placeholder="Придумайте надежный пароль">
+            <button class="btn-primary" onclick="registerUser()">Создать аккаунт</button>
+        </div>
+
+
+        <!-- =================================================== -->
+        <!-- ЭКРАН 1. ГЛАВНАЯ СТРАНИЦА ФОРУМА                    -->
+        <!-- =================================================== -->
         <div id="screen-forum" class="screen">
-            <h2 class="page-title">Важная информация</h2>
-            <div id="info-sections-list" class="sections-list" style="margin-bottom: 40px;"></div>
-            <h2 class="page-title">Игровые серверы RusCity Life RP</h2>
-            <div id="servers-list" class="sections-list"></div>
+            <h2>📢 Важная информация</h2>
+            <div id="info-sections-list"></div>
+
+            <h2>🌐 Игровые сервера RusCity Life RP</h2>
+            <div id="servers-list"></div>
         </div>
-        <!-- ЭКРАН 2: КАТЕГОРИИ СЕРВЕРА -->
+
+
+        <!-- =================================================== -->
+        <!-- ЭКРАН 2. ВЫБОР КАТЕГОРИИ НА СЕРВЕРЕ                  -->
+        <!-- =================================================== -->
         <div id="screen-categories" class="screen hidden">
-            <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
-            <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
-            <div id="categories-list" class="sections-list"></div>
+            <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">⬅️ К списку серверов</button>
+            <h2 id="current-server-title">Сервер</h2>
+            <div id="categories-list"></div>
         </div>
-        <!-- ЭКРАН 3: ФРАКЦИИ / ОРГАНИЗАЦИИ -->
+
+
+        <!-- =================================================== -->
+        <!-- ЭКРАН 3. СПИСОК ФРАКЦИЙ / ОРГАНИЗАЦИЙ               -->
+        <!-- =================================================== -->
         <div id="screen-factions" class="screen hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
-                <button id="btn-show-create-faction" class="btn-primary hidden" onclick="toggleFactionForm()">+ Создать организацию</button>
+            <button id="btn-back-to-categories" class="btn-secondary" style="margin-bottom: 20px;">⬅️ Назад в категории</button>
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <h2 id="current-category-title">Категория</h2>
+                <button id="btn-show-create-faction" class="btn-primary hidden" onclick="toggleFactionForm()">➕ Создать раздел фракции</button>
             </div>
-            <h2 id="current-category-title" class="page-title">🏢 Государственные организации</h2>
-            <div id="create-faction-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,75,75,0.2);">
-                <h3>Создание новой фракции</h3>
-                <input type="text" id="new-faction-name" placeholder="Название фракции">
-                <button class="btn-primary" onclick="createNewFaction()">Добавить организацию</button>
+
+            <!-- Админ-форма создания фракции -->
+            <div id="create-faction-form" class="form-block hidden" style="margin-top: 15px;">
+                <h3>Новая организация / раздел</h3>
+                <input type="text" id="new-faction-name" placeholder="Например: МВД или Правительство">
+                <button class="btn-primary" onclick="createNewFaction()">Подтвердить создание</button>
             </div>
-            <div id="factions-list" class="sections-list"></div>
+
+            <div id="factions-list" style="margin-top: 20px;"></div>
         </div>
-        <!-- ЭКРАН 4: СПИСОК ТЕМ -->
+
+
+        <!-- =================================================== -->
+        <!-- ЭКРАН 4. СПИСОК ТЕМ ВНУТРИ ФРАКЦИИ                  -->
+        <!-- =================================================== -->
         <div id="screen-topics" class="screen hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <button class="btn-secondary" id="btn-back-to-factions">← Назад</button>
-                <button id="btn-show-create-topic" class="btn-primary hidden" onclick="toggleTopicForm()">+ Создать тему</button>
+            <button id="btn-back-to-factions" class="btn-secondary" style="margin-bottom: 20px;">⬅️ Назад</button>
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <h2 id="current-faction-title">Организация</h2>
+                <button id="btn-show-create-topic" class="btn-primary hidden" onclick="toggleTopicForm()">➕ Создать тему</button>
             </div>
-            <h2 id="current-faction-title" class="page-title">📌 Название раздела</h2>
-            <div id="create-topic-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,75,75,0.2);">
-                <h3>Создание новой темы</h3>
-                <input type="text" id="new-topic-name" placeholder="Например: Заявления на СС">
+
+            <!-- Форма создания темы -->
+            <div id="create-topic-form" class="form-block hidden" style="margin-top: 15px;">
+                <h3>Название новой темы</h3>
+                <input type="text" id="new-topic-name" placeholder="Например: [МВД] | Жалобы на сотрудников">
                 <button class="btn-primary" onclick="createNewTopic()">Опубликовать тему</button>
             </div>
-            <div id="topics-list" class="sections-list"></div>
+
+            <div id="topics-list" style="margin-top: 20px;"></div>
         </div>
-        <!-- ЭКРАН 5: ПРОСМОТР ТЕМЫ + ПОДТЕМЫ -->
+
+
+        <!-- =================================================== -->
+        <!-- ЭКРАН 5. ПРОСМОТР И РЕДАКТИРОВАНИЕ ТЕМЫ             -->
+        <!-- =================================================== -->
         <div id="screen-view-topic" class="screen hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <button class="btn-secondary" onclick="backFromTopicView()">← Назад к списку тем</button>
-                <button id="btn-show-create-subtopic" class="btn-primary hidden" onclick="toggleSubTopicForm()">+ Создать подтему</button>
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <button class="btn-secondary" onclick="backFromTopicView()">⬅️ К списку тем</button>
+                <div style="display:flex; gap:10px;">
+                    <button id="topic-admin-editor-block" class="btn-primary hidden" onclick="toggleTopicEditor()">📝 Редактировать контент</button>
+                    <button id="btn-delete-current-topic" class="btn-logout hidden" onclick="deleteCurrentTopic()">❌ Полностью удалить ветку</button>
+                </div>
             </div>
+
+            <h2 id="topic-view-title">Тема</h2>
+
+            <!-- Контейнер для вложенных подтем (если есть) -->
+            <div id="subtopics-block" class="hidden" style="margin-bottom: 25px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 6px;">
+                <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">📂 Вложенные разделы / подтемы:</h4>
+                <div id="subtopics-list"></div>
+            </div>
+
+            <!-- Текст темы -->
+            <div id="topic-view-content" style="background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.6; min-height: 150px; overflow-x: auto;">
+                Загрузка содержимого...
+            </div>
+
+            <!-- Добавление подтемы -->
+            <button id="btn-show-create-subtopic" class="btn-secondary hidden" style="margin-top: 15px;" onclick="toggleSubTopicForm()">➕ Создать вложенную подтему</button>
+            <div id="create-subtopic-form" class="form-block hidden" style="margin-top: 10px;">
+                <input type="text" id="new-subtopic-name" placeholder="Название подтемы">
+                <button class="btn-primary" onclick="createNewSubTopic()">Добавить подтему</button>
+            </div>
+
+            <!-- ВСТРОЕННЫЙ ВИЗУАЛЬНЫЙ РЕДАКТОР КОНТЕНТА -->
+            <div id="topic-editor-inputs" class="form-block hidden" style="margin-top: 25px;">
+                <h3>Редактор публикации</h3>
+                <div class="editor-tools">
+                    <button type="button" onclick="formatText('bold')"><b>B</b></button>
+                    <button type="button" onclick="formatText('italic')"><i>I</i></button>
+                    <button type="button" onclick="formatText('underline')"><u>U</u></button>
+                    <button type="button" onclick="formatText('strikeThrough')"><s>S</s></button>
+                    <button type="button" onclick="formatText('justifyLeft')">⬅️</button>
+                    <button type="button" onclick="formatText('justifyCenter')">⏹️</button>
+                    <button type="button" onclick="formatText('justifyRight')">➡️</button>
+                    <button type="button" onclick="formatText('foreColor', prompt('Введите HEX или название цвета (например red или #ffcc00):'))">🎨 Цвет</button>
+                    <button type="button" onclick="formatText('fontSize', prompt('Размер шрифта от 1 до 7:'))">📏 Размер</button>
+                </div>
+                <div id="editor-rich-content" class="rich-editor" contenteditable="true"></div>
+                <button class="btn-primary" onclick="saveTopicContent()">💾 Сохранить изменения</button>
+            </div>
+        </div>
+
+
+        <!-- =================================================== -->
+        <!-- ЭКРАН 6. НАСТРОЙКИ ПРОФИЛЯ ЮЗЕРА                    -->
+        <!-- =================================================== -->
+        <div id="screen-profile-edit" class="screen form-block hidden">
+            <h2>Настройки Вашего Профиля</h2>
+            <label style="display:block; margin-bottom:5px; color: var(--text-muted)">Прямая ссылка на изображение аватара:</label>
+            <input type="text" id="edit-avatar-url" placeholder="https://example.com/avatar.png">
             
-            <div class="topic-view-container">
-                <h2 id="topic-view-title" class="page-title">Название темы</h2>
-                
-                <!-- Описание или текст текущей темы -->
-                <div id="topic-view-content" class="topic-content-display" style="margin-bottom: 20px;">Текст публикации загружается...</div>
-                
-                <!-- Блок вложенных подтем -->
-                <div id="subtopics-block" class="hidden" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
-                    <h3 style="color: #fff; margin-bottom: 15px; font-size: 16px;">📁 Вложенные подразделы / подтемы:</h3>
-                    <div id="subtopics-list" class="sections-list"></div>
-                </div>
-                <!-- Форма создания подтемы -->
-                <div id="create-subtopic-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid rgba(59,130,246,0.2);">
-                    <h3>Создание новой подтемы</h3>
-                    <input type="text" id="new-subtopic-name" placeholder="Название подтемы (например: Устав фракции)">
-                    <button class="btn-primary" onclick="createNewSubTopic()">Опубликовать подтему</button>
-                </div>
-                
-                <!-- Визуальный редактор текста (BB-коды) -->
-                <div id="topic-admin-editor-block" class="hidden" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
-                    <button id="btn-toggle-editor" class="btn-secondary" onclick="toggleTopicEditor()" style="margin-bottom: 15px;">✍️ Редактировать контент</button>
-                    
-                    <div id="topic-editor-inputs" class="hidden" style="display: flex; flex-direction: column; gap: 10px;">
-                        <div class="editor-toolbar">
-                            <select onchange="formatText('fontName', this.value)">
-                                <option value="Arial">Arial</option>
-                                <option value="Courier New">Courier New</option>
-                                <option value="Georgia">Georgia</option>
-                                <option value="Impact">Impact</option>
-                                <option value="Times New Roman">Times New Roman</option>
-                                <option value="Segoe UI" selected>Segoe UI</option>
-                            </select>
-                            <select onchange="formatText('fontSize', this.value)">
-                                <option value="1">Очень маленький</option>
-                                <option value="2">Маленький</option>
-                                <option value="3" selected>Обычный</option>
-                                <option value="4">Средний</option>
-                                <option value="5">Большой</option>
-                                <option value="6">Очень большой</option>
-                                <option value="7">Максимальный</option>
-                            </select>
-                            <button type="button" onclick="formatText('bold')" title="Жирный"><b>B</b></button>
-                            <button type="button" onclick="formatText('italic')" title="Курсив"><i>I</i></button>
-                            <button type="button" onclick="formatText('underline')" title="Подчеркнутый"><u>U</u></button>
-                            <button type="button" onclick="formatText('strikeThrough')" title="Зачеркнутый"><s>S</s></button>
-                            <button type="button" onclick="formatText('justifyLeft')">⬅️</button>
-                            <button type="button" onclick="formatText('justifyCenter')">🔼</button>
-                            <button type="button" onclick="formatText('justifyRight')">➡️</button>
-                            <div class="color-picker-wrapper">
-                                <span style="font-size: 11px;">Цвет:</span>
-                                <input type="color" onchange="formatText('foreColor', this.value)" value="#ffffff">
-                            </div>
-                            <div class="color-picker-wrapper">
-                                <span style="font-size: 11px;">Фон:</span>
-                                <input type="color" onchange="formatText('hiliteColor', this.value)" value="#12171f">
-                            </div>
-                            <button type="button" onclick="formatText('insertUnorderedList')">• Список</button>
-                            <button type="button" onclick="formatText('insertOrderedList')">1. Список</button>
-                            <button type="button" onclick="formatText('removeFormat')" style="color: #ff4b4b;">🧹 Сброс</button>
-                        </div>
-                        <div id="editor-rich-content" contenteditable="true" style="min-height: 200px; background: #12171f; border: 1px solid #334155; padding: 15px; border-radius: 6px; color: #fff;"></div>
-                        
-                        <button class="btn-primary" onclick="saveTopicContent()" style="background: #10b981; max-width: 200px; margin-top: 10px;">💾 Сохранить изменения</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- ЭКРАН 6: РЕГИСТРАЦИЯ -->
-        <div id="screen-register" class="screen hidden" style="padding: 20px; max-width: 400px; margin: 0 auto;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="color: #fff;">Регистрация</h2>
-                <p style="color: #8a99ad;">Создайте аккаунт, чтобы начать общение</p>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 15px;">
-                <input type="text" id="reg-username" placeholder="Nick_Name (например: Ivan_Ivanov)" 
-                       style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
-                
-                <input type="email" id="reg-email" placeholder="Ваш Email" 
-                       style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
-                
-                <input type="password" id="reg-password" placeholder="Пароль (минимум 6 символов)" 
-                       style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
-                
-                <button onclick="registerUser()" class="btn-primary" style="margin-top: 10px; width: 100%;">Зарегистрироваться</button>
-                <button onclick="showScreen('screen-login')" class="btn-secondary" 
-                        style="padding: 12px; cursor: pointer; background: transparent; color: #8a99ad; border: 1px solid #334155; border-radius: 6px;">
-                    Уже есть аккаунт? Войти
-                </button>
-            </div>
-        </div>
-        <!-- ЭКРАН 7: АВТОРИЗАЦИЯ -->
-        <div id="screen-login" class="screen hidden">
-            <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
-            <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
-                <input type="email" id="login-email" placeholder="Электронная почта" style="width: 100%; margin: 0;">
-                <input type="password" id="login-password" placeholder="Пароль" style="width: 100%; margin: 0;">
-                <button class="btn-primary" onclick="loginUser()" style="width: 100%; margin-top: 10px;">Войти в аккаунт</button>
-                
-                <span onclick="toggleResetForm(true)" style="color: #3b82f6; text-align: center; cursor: pointer; font-size: 14px; text-decoration: underline; margin-top: 5px;">
-                    Забыли пароль?
-                </span>
-            </div>
-            <div id="reset-password-block" class="form-group hidden" style="max-width: 380px; margin: 20px auto 0; padding: 15px; background: #1e2530; border-radius: 8px; border: 1px solid rgba(59,130,246,0.4); box-shadow: 0 0 15px rgba(59,130,246,0.15);">
-                <h3 style="font-size: 16px; margin-bottom: 10px; text-align: center;">Восстановление доступа</h3>
-                <p style="font-size: 13px; color: #a0aab8; margin-bottom: 10px; text-align: center;">На вашу почту придет ссылка для изменения пароля.</p>
-                <input type="email" id="reset-email" placeholder="Введите ваш Email" style="width: 100%; margin-bottom: 10px;">
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-primary" onclick="sendPasswordReset()" style="width: 50%; background: #10b981;">Отправить</button>
-                    <button class="btn-secondary" onclick="toggleResetForm(false)" style="width: 50%;">Отмена</button>
-                </div>
-            </div>
-        </div>
-        <!-- ЭКРАН 8: НАСТРОЙКИ СВОЕГО ПРОФИЛЯ -->
-        <div id="screen-profile" class="screen hidden profile-editor-card">
-            <div class="profile-preview-banner" id="profile-banner-preview">
-                <div class="profile-preview-avatar-container">
-                    <img id="profile-avatar-preview" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Превью">
-                </div>
-            </div>
-            <h2 style="margin-top: 50px; text-align: center;">Настройки профиля</h2>
-            <div class="form-group">
-                <label class="input-label">Ваш никнейм на форуме</label>
-                <input type="text" id="edit-username" placeholder="Введите новый ник">
-                
-                <div class="upload-grid">
-                    <div>
-                        <label class="input-label">Фото профиля</label>
-                        <button class="btn-upload-custom" onclick="document.getElementById('file-avatar').click()">📁 Выбрать аватар</button>
-                        <input type="file" id="file-avatar" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-avatar-preview', false)">
-                    </div>
-                    <div>
-                        <label class="input-label">Обложка (Баннер)</label>
-                        <button class="btn-upload-custom" onclick="document.getElementById('file-banner').click()">🖼️ Выбрать баннер</button>
-                        <input type="file" id="file-banner" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-banner-preview', true)">
-                    </div>
-                </div>
-                
-                <div class="profile-editor-actions" style="margin-top: 15px;">
-                    <button class="btn-primary" onclick="saveProfileChanges()" style="width: 100%; margin-bottom: 10px;">💾 Сохранить изменения</button>
-                    <button class="btn-secondary" onclick="showScreen('screen-forum')" style="width: 100%;">Отмена</button>
-                </div>
-            </div>
-        </div>
-        <!-- ЭКРАН 9: ПУБЛИЧНЫЙ ПРОФИЛЬ + СТЕНА -->
-        <div id="screen-public-profile" class="screen hidden profile-editor-card">
-            <div class="profile-preview-banner" id="public-banner">
-                <div class="profile-preview-avatar-container">
-                    <img id="public-avatar" src="https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png" alt="Аватар">
-                </div>
-            </div>
+            <label style="display:block; margin-bottom:5px; color: var(--text-muted)">Прямая ссылка на картинку заднего фона (баннер):</label>
+            <input type="text" id="edit-banner-url" placeholder="https://example.com/banner.jpg">
             
-            <div style="margin-top: 50px; text-align: center; padding: 0 20px;">
-                <h2 id="public-username" style="color: #fff; margin-bottom: 5px;">Никнейм</h2>
-                <div id="public-role" style="font-size: 14px; color: #3b82f6; font-weight: 600; margin-bottom: 15px;">Роль</div>
-                
-                <button id="btn-profile-like" class="btn-primary" onclick="toggleProfileLike()" style="background: #e11d48; box-shadow: 0 4px 10px rgba(225,29,72,0.3);">
-                    ❤️ Лайкнуть профиль
-                </button>
-                <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-left: 10px;">На главную</button>
-            </div>
-            <div style="margin-top: 30px; padding: 0 20px;">
-                <h3 class="page-title" style="font-size: 16px;">Стена пользователя</h3>
-                
-                <div id="profile-comment-form" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <textarea id="new-profile-comment" placeholder="Написать что-нибудь на стене..." rows="2" style="flex-grow: 1; background: #12171f; color:#fff; border: 1px solid #334155; border-radius:6px; padding:10px; resize:none;"></textarea>
-                    <button class="btn-primary" onclick="sendProfileComment()" style="height: fit-content; align-self: flex-end;">Отправить</button>
-                </div>
-                <div id="profile-comments-list" class="sections-list" style="gap: 10px;"></div>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn-primary" onclick="saveProfileSettings()">💾 Сохранить настройки</button>
+                <button class="btn-secondary" onclick="showScreen('screen-forum')">Отмена</button>
             </div>
         </div>
-        <!-- ЭКРАН 10: АДМИН-ПАНЕЛЬ -->
+
+
+        <!-- =================================================== -->
+        <!-- ЭКРАН 7. ПУБЛИЧНЫЙ ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ И СТЕНА     -->
+        <!-- =================================================== -->
+        <div id="screen-public-profile" class="screen hidden">
+            <div id="public-banner" class="profile-banner"></div>
+            <div class="profile-info-box">
+                <img id="public-avatar" class="profile-avatar" src="" alt="">
+                <div style="flex-grow: 1;">
+                    <h2 id="public-username" style="margin:0; border:none; padding:0;">Никнейм</h2>
+                    <div id="public-role" style="color: var(--primary-color); font-weight: 600; font-size: 14px; margin-top: 4px;">Пользователь</div>
+                </div>
+                <button id="btn-profile-like" class="btn-secondary" onclick="toggleProfileLike()">❤️ Лайков: 0</button>
+            </div>
+
+            <!-- Стена комментариев профиля -->
+            <div style="margin-top: 30px;">
+                <h3>💬 Стена профиля</h3>
+                <div class="form-block" style="display:flex; gap:10px; align-items: center; margin-bottom: 20px;">
+                    <input type="text" id="new-profile-comment" placeholder="Оставьте запись на стене пользователя..." style="margin:0;">
+                    <button class="btn-primary" onclick="sendProfileComment()">Отправить</button>
+                </div>
+                <div id="profile-comments-list" style="display:flex; flex-direction: column; gap:12px;"></div>
+            </div>
+        </div>
+
+
+        <!-- =================================================== -->
+        <!-- ЭКРАН 8. ПРОДВИНУТАЯ АДМИН-ПАНЕЛЬ С УДОБНЫМИ РОЛЯМИ -->
+        <!-- =================================================== -->
         <div id="screen-admin" class="screen hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 class="page-title" style="margin: 0;">👑 Панель управления проектом</h2>
-                <button class="btn-secondary" onclick="showScreen('screen-forum')">← На главную</button>
+            <h2>Управление правами пользователей форума</h2>
+            <div class="form-block" style="margin-bottom: 25px;">
+                <input type="text" id="admin-search-user" oninput= "filterAdminUsers()" placeholder="🔍 Быстрый поиск игрока по никнейму...">
             </div>
-            
-            <div style="margin-bottom: 20px;">
-                <input type="text" id="admin-search-user" placeholder="🔍 Поиск пользователя по никнейму..." oninput="filterAdminUsers()" style="width: 100%; max-width: 400px;">
+            <div id="admin-users-list" style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Карточки юзеров генерируются в app.js через <optgroup> -->
             </div>
-            <div id="admin-users-list" class="admin-list-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
         </div>
-    </main>
+
+    </div>
+
+    <!-- Подключаем твой файл со скриптами в самом конце -->
     <script src="app.js"></script>
 </body>
 </html>
