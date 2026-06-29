@@ -51,7 +51,7 @@ body {
 .logo-main { color: #ffffff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.6), 0 0 20px rgba(59, 130, 246, 0.4); }
 .logo-sub { color: #ff4b4b; text-shadow: 0 0 10px rgba(255, 75, 75, 0.6), 0 0 20px rgba(255, 75, 75, 0.4); }
 
-.header-nav { display: flex; gap: 15px; }
+.header-nav { display: flex; gap: 15px; align-items: center; }
 
 .nav-btn-modern {
     background: rgba(255, 255, 255, 0.03);
@@ -70,6 +70,26 @@ body {
     background: rgba(59, 130, 246, 0.15);
     border-color: #3b82f6;
     box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Красная кнопка регистрации */
+.nav-btn-register {
+    background: #ff4b4b;
+    border: 1px solid #ff3333;
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 8px rgba(255, 75, 75, 0.3);
+}
+
+.nav-btn-register:hover {
+    background: #ff3333;
+    box-shadow: 0 0 15px rgba(255, 75, 75, 0.6);
+    transform: translateY(-1px);
 }
 
 @keyframes adminGlow {
