@@ -26,7 +26,7 @@ body {
 
 .hidden { display: none !important; }
 
-/* АНИМАЦИИ */
+/* АНИМАЦИИ ВЫХОДА ЭКРАНОВ */
 .animate-fade {
     animation: fadeIn 0.35s ease-out forwards;
 }
@@ -35,7 +35,7 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ШАПКА */
+/* ШАПКА САЙТА */
 .forum-header {
     background-color: #1a1d24;
     border-bottom: 2px solid var(--accent-color);
@@ -72,7 +72,7 @@ body {
 .avatar-mini { width: 100%; height: 100%; object-fit: cover; }
 .btn-logout { background: none; border: none; font-size: 18px; cursor: pointer; }
 
-/* КАРТОЧКИ СЕРВЕРОВ И РАЗДЕЛОВ */
+/* КАРТОЧКИ И СПИСКИ РАЗДЕЛОВ */
 .sections-list { display: flex; flex-direction: column; gap: 12px; }
 .forum-section {
     background: var(--bg-card); padding: 18px; border-radius: 8px;
@@ -85,7 +85,7 @@ body {
 .forum-section h3 { margin-bottom: 4px; color: #fff; font-size: 18px; }
 .forum-section p { color: #a0aec0; font-size: 14px; }
 
-/* СЕРВЕРА С КНОПКОЙ СКРЫТИЯ */
+/* УПРАВЛЕНИЕ СЕРВЕРАМИ */
 .server-card-container {
     display: flex; justify-content: space-between; align-items: center;
     background: var(--bg-card); border-radius: 8px; border-left: 4px solid #2d3748;
@@ -109,7 +109,7 @@ body {
 .auth-card input { padding: 12px; background: #2d3748; border: 1px solid #4a5568; border-radius: 6px; color: #fff; }
 .auth-toggle { color: #a0aec0; text-align: center; cursor: pointer; }
 
-/* ТЕГИ АДМИНИСТРАЦИИ */
+/* РОЛИ И ТЕГИ АДМИНИСТРАЦИИ */
 .role-badge { display: inline-block; padding: 5px 12px; border-radius: 4px; font-size: 12px; font-weight: 700; color: #fff; margin: 6px 0; text-transform: uppercase; }
 .tag-user { background-color: #4a5568; }
 .tag-rukovodstvo { background: linear-gradient(135deg, #ff004c, #7000ff); border: 1px solid #fff; }
@@ -122,7 +122,7 @@ body {
 .tag-zamglavforum { background-color: #90e0ef; color: #000; }
 .tag-admforum { background-color: #0077b6; }
 
-/* ПРОФИЛЬ */
+/* ОФОРМЛЕНИЕ ПРОФИЛЯ */
 .profile-banner { height: 200px; background-size: cover; background-position: center; background-color: #2d3748; border-radius: 12px; position: relative; margin-bottom: 60px; }
 .profile-avatar-container { position: absolute; bottom: -40px; left: 40px; width: 100px; height: 100px; border-radius: 50%; overflow: hidden; border: 4px solid var(--bg-main); background: #4a5568; }
 .profile-avatar-container img { width: 100%; height: 100%; object-fit: cover; }
@@ -134,7 +134,7 @@ body {
 .form-group label { display: block; margin-bottom: 6px; color: #a0aec0; font-size: 14px; }
 .form-group input[type="text"], .form-group textarea { width: 100%; padding: 10px; background: #2d3748; border: 1px solid #4a5568; border-radius: 6px; color: #fff; }
 
-/* ТЕМЫ */
+/* СТРАНИЦА ПРОСМОТРА ТЕМЫ */
 .section-header-block { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .topic-main-post { background: var(--bg-card); padding: 25px; border-radius: 8px; margin-bottom: 25px; }
 .topic-meta { font-size: 13px; color: #a0aec0; margin: 8px 0; }
