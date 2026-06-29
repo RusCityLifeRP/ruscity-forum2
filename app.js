@@ -1,4 +1,4 @@
-// Конфигурация Firebase
+// НАСТРОЙКА FIREBASE (Вставь сюда свои личные данные конфигурации!)
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -9,374 +9,206 @@ const firebaseConfig = {
     appId: "1:728638066749:web:78b207bc6765e3dc685a54"
 };
 
-// Инициализация Firebase
-firebase.initializeApp(firebaseConfig);
+// Инициализация
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const auth = firebase.auth();
 const db = firebase.database();
 
-function isProjectManagement() {
-    return currentUserData && currentUserData.role === 'Руководство проекта';
-}
+// Список доступных ролей на проекте
+const ROLES = [
+    "Пользователь",
+    "Заместитель главного администратора форума",
+    "Главный администратор форума",
+    "Заместитель главного администратора",
+    "Главный администратор",
+    "Специальный администратор",
+    "Руководство проекта"
+];
 
+// Глобальные переменные состояния
 let currentUserData = null;
-let viewedUserId = null;
-let currentServerId = null;    // moscow, spb, sochi
-let currentSectionId = null;   // gov, mvd, report-players и т.д.
-let currentTopicId = null;
 
-let base64Avatar = null;
-let base64Banner = null;
+// СЛУШАТЕЛЬ АВТОРИЗАЦИИ И ОБНОВЛЕНИЯ ПРОФИЛЯ
+auth.onAuthStateChanged(user => {
+    const btnAdmin = document.getElementById('btn-admin-panel');
+    const authButtons = document.getElementById('auth-buttons');
+    const userMenu = document.getElementById('user-menu');
+    
+    if (user) {
+        // Пользователь залогинен -> слушаем изменения его профиля в БД в реальном времени
+        db.ref('users/' + user.uid).on('value', snapshot => {
+            currentUserData = snapshot.val();
+            if (!currentUserData) return;
+            currentUserData.uid = user.uid;
 
-const tagClasses = {
-    'User': 'tag-user',
-    'Руководство проекта': 'tag-rukovodstvo',
-    'Специальный администратор': 'tag-specadmin',
-    'Главный администратор': 'tag-glavadmin',
-    'Заместитель главного администратора': 'tag-zamglavadmin',
-    'Главный куратор': 'tag-glavkurator',
-    'Заместитель главного куратора': 'tag-zamglavkurator',
-    'Главный администратор форума': 'tag-glavforum',
-    'Зам. Главного адм форума': 'tag-zamglavforum',
-    'Адм. Форума': 'tag-admforum'
-};
+            // Обновляем шапку профиля
+            if (authButtons) authButtons.classList.add('hidden');
+            if (userMenu) userMenu.classList.remove('hidden');
+            if (document.getElementById('header-username')) {
+                document.getElementById('header-username').innerText = currentUserData.username || "Пользователь";
+            }
+            if (document.getElementById('header-avatar')) {
+                document.getElementById('header-avatar').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
+            }
 
-function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById(screenId).classList.remove('hidden');
+            // Проверяем доступ к админке (список разрешенных ролей)
+            const allowedRoles = [
+                "Руководство проекта", 
+                "Специальный администратор", 
+                "Главный администратор", 
+                "Заместитель главного администратора",
+                "Главный администратор форума",
+                "Заместитель главного администратора форума"
+            ];
+
+            if (btnAdmin) {
+                if (allowedRoles.includes(currentUserData.role)) {
+                    btnAdmin.classList.remove('hidden');
+                } else {
+                    btnAdmin.classList.add('hidden');
+                }
+            }
+        });
+    } else {
+        // Пользователь вышел
+        currentUserData = null;
+        if (authButtons) authButtons.classList.remove('hidden');
+        if (userMenu) userMenu.classList.add('hidden');
+        if (btnAdmin) btnAdmin.classList.add('hidden');
+    }
+});
+
+// ЗАГРУЗКА ИГРОВЫХ СЕРВЕРОВ ИЗ FIREBASE
+function loadServers() {
+    const serversListDiv = document.getElementById('servers-list');
+    if (!serversListDiv) return;
+
+    db.ref('servers').on('value', snapshot => {
+        serversListDiv.innerHTML = '';
+        const servers = snapshot.val();
+        
+        if (!servers) {
+            serversListDiv.innerHTML = '<p class="error-msg">Серверы не найдены в БД или доступ запрещен (Проверьте Firebase Rules)</p>';
+            return;
+        }
+
+        Object.keys(servers).forEach(serverId => {
+            const server = servers[serverId];
+            
+            // Настройка красивых эмодзи на основе ID или имени сервера для визуала городов
+            let emoji = "🎮";
+            if (serverId.includes('moscow') || (server.name && server.name.includes('Москва'))) emoji = "🏰";
+            if (serverId.includes('sochi') || (server.name && server.name.includes('Сочи'))) emoji = "🌴";
+            if (serverId.includes('spb') || (server.name && server.name.includes('Петербург'))) emoji = "⚓";
+
+            const card = document.createElement('div');
+            card.className = 'server-card-item';
+            // Безопасный вызов клика через addEventListener, чтобы ничего не блокировалось
+            card.addEventListener('click', () => {
+                openSection(serverId);
+            });
+
+            card.innerHTML = `
+                <div class="server-card-content">
+                    <h3>${emoji} ${server.name || serverId}</h3>
+                    <p>Перейти к разделам сервера</p>
+                </div>
+            `;
+            serversListDiv.appendChild(card);
+        });
+    });
 }
 
+// Открытие конкретного сервера
+function openSection(serverId) {
+    alert("Переход на сервер: " + serverId);
+    // Сюда можно дописать твою логику открытия тем, например: showScreen('screen-threads'); loadThreads(serverId);
+}
+
+// ПАНЕЛЬ ВЫДАЧИ РОЛЕЙ ДЛЯ АДМИНИСТРАЦИИ
 function openAdminPanel() {
-    if (!isProjectManagement()) {
-        alert("Доступ запрещен!");
-        return;
-    }
-    
     showScreen('screen-admin');
     const list = document.getElementById('admin-users-list');
-    list.innerHTML = 'Загрузка...';
+    if (!list) return;
+    list.innerHTML = '<p>Загрузка списка пользователей...</p>';
 
-    // Читаем список пользователей из базы
     db.ref('users').once('value', snapshot => {
         list.innerHTML = '';
         const users = snapshot.val();
-        
+        if (!users) return;
+
         Object.keys(users).forEach(uid => {
             const user = users[uid];
+            
             const div = document.createElement('div');
             div.className = 'admin-user-item';
+            
+            // Генерация выпадающего списка ролей
+            let options = ROLES.map(role => 
+                `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`
+            ).join('');
+
             div.innerHTML = `
-                <p><strong>${user.username || 'Без имени'}</strong> (${user.role || 'Пользователь'})</p>
-                <button onclick="setAdminRole('${uid}')">Дать Руководство</button>
+                <div class="admin-user-info">
+                    <strong>${user.username || 'Без имени'}</strong> (Текущая роль: <span class="role-badge">${user.role || 'Пользователь'}</span>)
+                </div>
+                <div class="admin-user-actions">
+                    <select onchange="updateUserRole('${uid}', this.value)">
+                        ${options}
+                    </select>
+                </div>
             `;
             list.appendChild(div);
         });
     });
 }
 
-// Функция смены роли
-function setAdminRole(uid) {
+// Функция сохранения новой роли в Firebase
+function updateUserRole(uid, newRole) {
+    if (!ROLES.includes(newRole)) return;
+
     db.ref('users/' + uid).update({
-        role: 'Руководство проекта'
+        role: newRole
     }).then(() => {
-        alert("Роль обновлена!");
-        openAdminPanel(); // Перезагружаем список
+        alert("Роль успешно изменена!");
+    }).catch(error => {
+        alert("Ошибка изменения роли: " + error.message);
     });
 }
 
-function isProjectManagement() {
-    return currentUserData && currentUserData.role === 'Руководство проекта';
-}
-
-// Инициализация структуры серверов в БД
-db.ref('servers').once('value', snapshot => {
-    if (!snapshot.exists()) {
-        db.ref('servers').set({
-            moscow: { name: "🇷🇺 Москва", visible: true },
-            spb: { name: "⚓ Санкт-Петербург", visible: true },
-            sochi: { name: "🌴 Сочи", visible: true }
-        });
-    }
-});
-
-// Слушатель серверов на главной странице
-db.ref('servers').on('value', snapshot => {
-    const serversList = document.getElementById('servers-list');
-    if (!serversList) return;
-    serversList.innerHTML = '';
-    const servers = snapshot.val();
-    if (!servers) return;
-
-    Object.keys(servers).forEach(sId => {
-        const server = servers[sId];
-        const isLeader = isProjectManagement();
-
-        if (!server.visible && !isLeader) return;
-
-        const container = document.createElement('div');
-        container.className = 'server-card-container';
-        if (!server.visible) container.classList.add('server-hidden-status');
-
-        const card = document.createElement('div');
-        card.className = 'forum-section';
-        card.onclick = () => {
-            currentServerId = sId;
-            document.getElementById('current-server-title').innerText = server.name;
-            showScreen('screen-server-categories');
-        };
-        card.innerHTML = `<h3>${server.name} ${!server.visible ? '🔒 (Скрыт)' : ''}</h3><p>Перейти к разделам сервера</p>`;
-        container.appendChild(card);
-
-        if (isLeader) {
-            const toggleBtn = document.createElement('button');
-            toggleBtn.className = server.visible ? 'btn-toggle-visibility btn-danger' : 'btn-toggle-visibility btn-success';
-            toggleBtn.innerText = server.visible ? 'Скрыть' : 'Показать';
-            toggleBtn.onclick = (e) => {
-                e.stopPropagation();
-                db.ref(`servers/${sId}`).update({ visible: !server.visible });
-            };
-            container.appendChild(toggleBtn);
-        }
-        serversList.appendChild(container);
-    });
-});
-
-function openServerCategory(categoryType) {
-    if (categoryType === 'gos') showScreen('screen-gos-orgs');
-    else if (categoryType === 'crime') showScreen('screen-crime-orgs');
-    else openSection(categoryType);
-}
-
-function goBackFromSection() {
-    const gosSections = ['gov','skr','proc','court','fsb','fsin','rosgvard','mvd','gibdd','codd','army','hospital3','hospital7','moscow_live'];
-    const crimeSections = ['opg_tambov','opg_lyubertsy','mafia_rh'];
+// Навигация по экранам приложения
+function showScreen(screenId) {
+    const screens = document.querySelectorAll('.screen');
+    screens.forEach(screen => screen.classList.add('hidden'));
     
-    if (gosSections.includes(currentSectionId)) {
-        showScreen('screen-gos-orgs');
-    } else if (crimeSections.includes(currentSectionId)) {
-        showScreen('screen-crime-orgs');
-    } else {
-        showScreen('screen-server-categories');
-    }
+    const target = document.getElementById(screenId);
+    if (target) target.classList.remove('hidden');
 }
 
-// Исправленная функция
-function openSection(sectionId) {
-    // Проверка, передано ли значение
-    if (typeof sectionId === 'undefined') {
-        console.error("Ошибка: sectionId не был передан в функцию openSection");
-        return;
-    }
-    
-    currentSectionId = sectionId;
-    showScreen('screen-section');
-    
-    const btnCreate = document.getElementById('btn-create-topic');
-    
-    // ПРОВЕРКА ПРАВ: Показываем кнопку создания только если это руководство
-    if (isProjectManagement()) {
-        btnCreate.classList.remove('hidden');
-    } else {
-        btnCreate.classList.add('hidden');
-    }
-
-    // Использование sectionId внутри пути к базе данных
-    db.ref(`topics/${currentServerId}/${sectionId}`).on('value', snapshot => {
-        const topicsList = document.getElementById('topics-list');
-        topicsList.innerHTML = '';
-        const data = snapshot.val();
-        
-        if (!data) {
-            topicsList.innerHTML = '<p style="padding:20px; color:#a0aec0;">Тем пока нет.</p>';
-            return;
-        }
-        
-        Object.keys(data).forEach(topicId => {
-            const topic = data[topicId];
-            const item = document.createElement('div');
-            item.className = 'forum-section';
-            item.onclick = () => openTopic(topicId);
-            item.innerHTML = `<h3>${topic.title}</h3><p>Автор: ${topic.authorName} | Ответов: ${topic.replyCount || 0}</p>`;
-            topicsList.appendChild(item);
-        });
-    });
-}
-
-function showTopicForm() { 
-    document.getElementById('topic-form-block').classList.toggle('hidden'); 
-}
-
-function createNewTopic() {
-    const title = document.getElementById('new-topic-title').value.trim();
-    const text = document.getElementById('new-topic-text').value.trim();
-    if (!title || !text) return alert("Заполните поля!");
-
-    db.ref(`topics/${currentServerId}/${currentSectionId}`).push({
-        title: title, text: text, authorId: currentUserData.uid, authorName: currentUserData.username, replyCount: 0
-    }).then(() => {
-        document.getElementById('new-topic-title').value = '';
-        document.getElementById('new-topic-text').value = '';
-        document.getElementById('topic-form-block').classList.add('hidden');
-    });
-}
-
-function openTopic(topicId) {
-    currentTopicId = topicId;
-    showScreen('screen-topic-view');
-    if (currentUserData) document.getElementById('comment-form-block').classList.remove('hidden');
-
-    db.ref(`topics/${currentServerId}/${currentSectionId}/${topicId}`).once('value').then(snapshot => {
-        const topic = snapshot.val();
-        if (!topic) return;
-        document.getElementById('view-topic-title').innerText = topic.title;
-        document.getElementById('view-topic-author').innerText = topic.authorName;
-        document.getElementById('view-topic-text').innerText = topic.text;
-    });
-
-    db.ref('comments/' + topicId).on('value', snapshot => {
-        const commentsList = document.getElementById('comments-list');
-        commentsList.innerHTML = '';
-        const data = snapshot.val();
-        if (!data) return;
-        Object.keys(data).forEach(cId => {
-            const comment = data[cId];
-            const cDiv = document.createElement('div');
-            cDiv.style = "background: var(--bg-card); padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid var(--accent-color);";
-            cDiv.innerHTML = `<div style="font-size:13px; color:#a0aec0; font-weight:bold;">${comment.authorName}</div><div style="white-space:pre-wrap;">${comment.text}</div>`;
-            commentsList.appendChild(cDiv);
-        });
-    });
-}
-
-function createNewComment() {
-    const text = document.getElementById('new-comment-text').value.trim();
-    if (!text) return alert("Введите текст!");
-    db.ref('comments/' + currentTopicId).push({ text: text, authorId: currentUserData.uid, authorName: currentUserData.username }).then(() => {
-        db.ref(`topics/${currentServerId}/${currentSectionId}/${currentTopicId}/replyCount`).transaction(c => (c || 0) + 1);
-        document.getElementById('new-comment-text').value = '';
-    });
-}
-
-// Функции аккаунтов и аутентификации
-function registerUser() {
-    const username = document.getElementById('reg-username').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const password = document.getElementById('reg-password').value;
-    if(!username || password !== document.getElementById('reg-password-confirm').value) return alert("Проверьте данные!");
-
-    auth.createUserWithEmailAndPassword(email, password).then(cred => {
-        db.ref('users/' + cred.user.uid).set({
-            username: username, role: "User",
-            avatar: "https://placehold.co/150/444/fff?text=" + username[0],
-            banner: "https://placehold.co/1000x300/222/fff?text=RusCity", description: "Игрок RusCity"
-        });
-        showScreen('screen-forum');
-    }).catch(e => alert(e.message));
-}
-
+// Функция авторизации (Вход)
 function loginUser() {
-    auth.signInWithEmailAndPassword(document.getElementById('login-email').value, document.getElementById('login-password').value)
-        .then(() => showScreen('screen-forum')).catch(e => alert(e.message));
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-password').value;
+
+    auth.signInWithEmailAndPassword(email, pass)
+        .then(() => {
+            alert("Успешный вход!");
+            showScreen('screen-forum');
+        })
+        .catch(err => alert("Ошибка входа: " + err.message));
 }
 
-function logout() { auth.signOut().then(() => location.reload()); }
-
-auth.onAuthStateChanged(user => {
-    const btnAdmin = document.getElementById('btn-admin-panel'); // Получаем кнопку
-    
-    if (user) {
-        db.ref('users/' + user.uid).on('value', snapshot => {
-            currentUserData = snapshot.val();
-            if (!currentUserData) return;
-            currentUserData.uid = user.uid;
-
-            // ... (твой код обновления интерфейса, который уже есть)
-            document.getElementById('auth-buttons').classList.add('hidden');
-            document.getElementById('user-menu').classList.remove('hidden');
-            document.getElementById('header-username').innerText = currentUserData.username;
-            document.getElementById('header-avatar').src = currentUserData.avatar;
-
-            // НОВАЯ ЛОГИКА: Показ кнопки админа
-            if (currentUserData.role === 'Руководство проекта') {
-                if (btnAdmin) btnAdmin.classList.remove('hidden');
-            } else {
-                if (btnAdmin) btnAdmin.classList.add('hidden');
-            }
-        });
-    } else {
-        // Если пользователь не залогинен, прячем кнопку
-        if (btnAdmin) btnAdmin.classList.add('hidden');
-    }
-});
-
-
-function viewMyProfile() { openProfile(currentUserData.uid); }
-
-function openProfile(uid) {
-    viewedUserId = uid;
-    showScreen('screen-profile');
-    base64Avatar = null; base64Banner = null;
-
-    db.ref('users/' + uid).once('value').then(snapshot => {
-        const user = snapshot.val();
-        document.getElementById('prof-name').innerText = user.username;
-        const badge = document.getElementById('prof-role');
-        badge.innerText = user.role || "Пользователь";
-        badge.className = "role-badge " + (tagClasses[user.role] || 'tag-user');
-        document.getElementById('prof-desc').innerText = user.description;
-        document.getElementById('prof-avatar').src = user.avatar;
-        document.getElementById('prof-banner').style.backgroundImage = `url('${user.banner}')`;
-
-        if (currentUserData && currentUserData.uid === uid) {
-            document.getElementById('profile-edit-block').classList.remove('hidden');
-            document.getElementById('edit-name').value = user.username;
-            document.getElementById('edit-desc').value = user.description;
-            document.getElementById('edit-role-tag').value = user.role || "User";
-        }
+// Выход из аккаунта
+function logout() {
+    auth.signOut().then(() => {
+        alert("Вы вышли из системы");
+        showScreen('screen-forum');
     });
 }
 
-// Чтение локальных картинок из проводника
+// Автозапуск при старте страницы
 document.addEventListener("DOMContentLoaded", () => {
-    const avatarInput = document.getElementById('file-avatar');
-    const bannerInput = document.getElementById('file-banner');
-    
-    if(avatarInput) {
-        avatarInput.addEventListener('change', (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            const r = new FileReader(); r.onloadend = () => { base64Avatar = r.result; }; r.readAsDataURL(file);
-        });
-    }
-    if(bannerInput) {
-        bannerInput.addEventListener('change', (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            const r = new FileReader(); r.onloadend = () => { base64Banner = r.result; }; r.readAsDataURL(file);
-        });
-    }
+    loadServers();
 });
-
-function saveProfile() {
-    const newName = document.getElementById('edit-name').value.trim();
-    const newDesc = document.getElementById('edit-desc').value.trim();
-    const newRole = document.getElementById('edit-role-tag').value;
-
-    let updateData = { 
-        username: newName, 
-        description: newDesc 
-    };
-
-    // Только если пользователь — Руководство, применяем новую роль
-    if (isProjectManagement()) {
-        updateData.role = newRole;
-    } else {
-        // Иначе принудительно оставляем текущую роль
-        updateData.role = currentUserData.role; 
-    }
-
-    if (base64Avatar) updateData.avatar = base64Avatar;
-    if (base64Banner) updateData.banner = base64Banner;
-
-    db.ref('users/' + currentUserData.uid).update(updateData).then(() => {
-        alert("Профиль успешно обновлен");
-        openProfile(currentUserData.uid);
-    });
-}
