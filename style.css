@@ -403,3 +403,68 @@ select {
     outline: none;
     cursor: pointer;
 }
+
+/* Улучшенные карточки в админ-панели */
+.admin-user-card {
+    background: #161c24;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    transition: all 0.3s ease;
+}
+
+/* Стили состояний */
+.admin-user-card.status-banned {
+    border-color: #ff4b4b;
+    background: linear-gradient(135deg, #161c24 0%, rgba(255, 75, 75, 0.05) 100%);
+}
+
+.admin-user-card.status-muted {
+    border-color: #ff9f43;
+    background: linear-gradient(135deg, #161c24 0%, rgba(255, 159, 67, 0.05) 100%);
+}
+
+.admin-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 10px;
+}
+
+.admin-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+}
+
+.btn-punish {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #fff;
+}
+
+.btn-punish.ban { background: #ff4b4b; }
+.btn-punish.unban { background: #10b981; }
+.btn-punish.mute { background: #ff9f43; }
+.btn-punish.unmute { background: #3b82f6; }
+
+.btn-punish:hover {
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 700;
+}
