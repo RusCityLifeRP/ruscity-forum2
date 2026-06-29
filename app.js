@@ -1,4 +1,4 @@
-// НАСТРОЙКА FIREBASE (Вставь сюда свои личные данные конфигурации!)
+// НАСТРОЙКА FIREBASE (ЗАМЕНИ НА СВОИ КЛЮЧИ ИЗ КОНСОЛИ FIREBASE!)
 const firebaseConfig = {
     apiKey: "AIzaSyBdF1KOHXA0K4O213JdF9FDCnarx0bEBy8",
     authDomain: "ruscity-349e7.firebaseapp.com",
@@ -7,6 +7,7 @@ const firebaseConfig = {
     storageBucket: "ruscity-349e7.firebasestorage.app",
     messagingSenderId: "728638066749",
     appId: "1:728638066749:web:78b207bc6765e3dc685a54"
+
 };
 
 // Инициализация
@@ -16,7 +17,7 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Список доступных ролей на проекте
+// Список ролей
 const ROLES = [
     "Пользователь",
     "Заместитель главного администратора форума",
@@ -27,23 +28,21 @@ const ROLES = [
     "Руководство проекта"
 ];
 
-// Глобальные переменные состояния
 let currentUserData = null;
 
-// СЛУШАТЕЛЬ АВТОРИЗАЦИИ И ОБНОВЛЕНИЯ ПРОФИЛЯ
+// СЛУШАТЕЛЬ СОСТОЯНИЯ АВТОРИЗАЦИИ
 auth.onAuthStateChanged(user => {
     const btnAdmin = document.getElementById('btn-admin-panel');
     const authButtons = document.getElementById('auth-buttons');
     const userMenu = document.getElementById('user-menu');
     
     if (user) {
-        // Пользователь залогинен -> слушаем изменения его профиля в БД в реальном времени
         db.ref('users/' + user.uid).on('value', snapshot => {
             currentUserData = snapshot.val();
             if (!currentUserData) return;
             currentUserData.uid = user.uid;
 
-            // Обновляем шапку профиля
+            // Обновляем шапку
             if (authButtons) authButtons.classList.add('hidden');
             if (userMenu) userMenu.classList.remove('hidden');
             if (document.getElementById('header-username')) {
@@ -53,7 +52,7 @@ auth.onAuthStateChanged(user => {
                 document.getElementById('header-avatar').src = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
             }
 
-            // Проверяем доступ к админке (список разрешенных ролей)
+            // Проверка ролей для доступа к админке
             const allowedRoles = [
                 "Руководство проекта", 
                 "Специальный администратор", 
@@ -72,7 +71,6 @@ auth.onAuthStateChanged(user => {
             }
         });
     } else {
-        // Пользователь вышел
         currentUserData = null;
         if (authButtons) authButtons.classList.remove('hidden');
         if (userMenu) userMenu.classList.add('hidden');
@@ -80,7 +78,7 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ЗАГРУЗКА ИГРОВЫХ СЕРВЕРОВ ИЗ FIREBASE
+// ДИНАМИЧЕСКАЯ ЗАГРУЗКА СЕРВЕРОВ
 function loadServers() {
     const serversListDiv = document.getElementById('servers-list');
     if (!serversListDiv) return;
@@ -90,14 +88,13 @@ function loadServers() {
         const servers = snapshot.val();
         
         if (!servers) {
-            serversListDiv.innerHTML = '<p class="error-msg">Серверы не найдены в БД или доступ запрещен (Проверьте Firebase Rules)</p>';
+            serversListDiv.innerHTML = '<p style="color:#ff4b4b;">Ошибка доступа. Проверьте Rules в Firebase.</p>';
             return;
         }
 
         Object.keys(servers).forEach(serverId => {
             const server = servers[serverId];
             
-            // Настройка красивых эмодзи на основе ID или имени сервера для визуала городов
             let emoji = "🎮";
             if (serverId.includes('moscow') || (server.name && server.name.includes('Москва'))) emoji = "🏰";
             if (serverId.includes('sochi') || (server.name && server.name.includes('Сочи'))) emoji = "🌴";
@@ -105,7 +102,6 @@ function loadServers() {
 
             const card = document.createElement('div');
             card.className = 'server-card-item';
-            // Безопасный вызов клика через addEventListener, чтобы ничего не блокировалось
             card.addEventListener('click', () => {
                 openSection(serverId);
             });
@@ -121,13 +117,11 @@ function loadServers() {
     });
 }
 
-// Открытие конкретного сервера
 function openSection(serverId) {
-    alert("Переход на сервер: " + serverId);
-    // Сюда можно дописать твою логику открытия тем, например: showScreen('screen-threads'); loadThreads(serverId);
+    alert("Вы перешли в разделы сервера: " + serverId);
 }
 
-// ПАНЕЛЬ ВЫДАЧИ РОЛЕЙ ДЛЯ АДМИНИСТРАЦИИ
+// АДМИНКА
 function openAdminPanel() {
     showScreen('screen-admin');
     const list = document.getElementById('admin-users-list');
@@ -141,20 +135,16 @@ function openAdminPanel() {
 
         Object.keys(users).forEach(uid => {
             const user = users[uid];
-            
             const div = document.createElement('div');
             div.className = 'admin-user-item';
             
-            // Генерация выпадающего списка ролей
             let options = ROLES.map(role => 
                 `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`
             ).join('');
 
             div.innerHTML = `
-                <div class="admin-user-info">
-                    <strong>${user.username || 'Без имени'}</strong> (Текущая роль: <span class="role-badge">${user.role || 'Пользователь'}</span>)
-                </div>
-                <div class="admin-user-actions">
+                <div><strong>${user.username || 'Без имени'}</strong> (Роль: ${user.role || 'Пользователь'})</div>
+                <div>
                     <select onchange="updateUserRole('${uid}', this.value)">
                         ${options}
                     </select>
@@ -165,50 +155,33 @@ function openAdminPanel() {
     });
 }
 
-// Функция сохранения новой роли в Firebase
 function updateUserRole(uid, newRole) {
     if (!ROLES.includes(newRole)) return;
-
-    db.ref('users/' + uid).update({
-        role: newRole
-    }).then(() => {
-        alert("Роль успешно изменена!");
-    }).catch(error => {
-        alert("Ошибка изменения роли: " + error.message);
-    });
+    db.ref('users/' + uid).update({ role: newRole })
+        .then(() => alert("Роль успешно изменена!"))
+        .catch(error => alert("Ошибка изменения роли: " + error.message));
 }
 
-// Навигация по экранам приложения
 function showScreen(screenId) {
-    const screens = document.querySelectorAll('.screen');
-    screens.forEach(screen => screen.classList.add('hidden'));
-    
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     const target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
 }
 
-// Функция авторизации (Вход)
 function loginUser() {
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-password').value;
-
     auth.signInWithEmailAndPassword(email, pass)
-        .then(() => {
-            alert("Успешный вход!");
-            showScreen('screen-forum');
-        })
-        .catch(err => alert("Ошибка входа: " + err.message));
+        .then(() => { alert("Вход выполнен!"); showScreen('screen-forum'); })
+        .catch(err => alert("Ошибка: " + err.message));
 }
 
-// Выход из аккаунта
 function logout() {
-    auth.signOut().then(() => {
-        alert("Вы вышли из системы");
-        showScreen('screen-forum');
-    });
+    auth.signOut().then(() => { location.reload(); });
 }
 
-// Автозапуск при старте страницы
 document.addEventListener("DOMContentLoaded", () => {
     loadServers();
 });
+
+
