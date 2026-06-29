@@ -15,7 +15,7 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Базовые роли для выпадающего списка в админке
+// Базовые роли проекта
 const ROLES = [
     "Пользователь", "Заместитель главного администратора форума", "Главный администратор форума",
     "Заместитель главного администратора", "Главный администратор", "Специальный администратор", "Руководство проекта"
@@ -34,7 +34,7 @@ let isGlobalInfoZone = false;
 let viewedProfileUid = "";
 
 // ==========================================
-// 1.5 ДИНАМИЧЕСКАЯ ПРОВЕРОЧНАЯ СИСТЕМА ПРАВ ЛИДЕРА
+// 1.5 ДИНАМИЧЕСКАЯ СИСТЕМА ПРОВЕРКИ ПРАВ ЛИДЕРА
 // ==========================================
 function checkModerationRights() {
     if (!currentUserData) return false;
@@ -46,7 +46,7 @@ function checkModerationRights() {
     const currentServerName = document.getElementById('current-server-title') ? document.getElementById('current-server-title').innerText.replace(/[^а-яА-ЯёЁa-zA-Z0-9 ]/g, '').trim() : "";
     const currentFactionName = document.getElementById('current-faction-title') ? document.getElementById('current-faction-title').innerText.replace(/[^а-яА-ЯёЁa-zA-Z0-9 ]/g, '').trim() : "";
 
-    // Шаблон проверяемой роли, например: "Москва LIVE Лидер Правительство"
+    // Собираем шаблон проверяемой роли, например: "Москва LIVE Лидер Правительство"
     const expectedLeaderRole = `${currentServerName} Лидер ${currentFactionName}`;
 
     // Проверяем, совпадает ли роль лидера с текущим разделом
@@ -58,7 +58,7 @@ function checkModerationRights() {
 }
 
 // ==========================================
-// 2. СЛУШАТЕЛЬ СЕССИИ И РОЛЕЙ
+// 2. СЛУШАТЕЛЬ СЕССИИ И ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
 // ==========================================
 auth.onAuthStateChanged(user => {
     const btnAdmin = document.getElementById('btn-admin-panel');
@@ -106,13 +106,25 @@ auth.onAuthStateChanged(user => {
     }
 });
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ: Теперь кнопка создания темы видна лидеру конкретной фракции!
 function updateAdminButtonsVisibility() {
-    const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
+    const isProjectAdmin = currentUserData && currentUserData.role === "Руководство проекта";
+    const hasFactionRights = checkModerationRights(); // Проверяем, является ли он лидером этой ветки
+
     const btnCreateFaction = document.getElementById('btn-show-create-faction');
     const btnCreateTopic = document.getElementById('btn-show-create-topic');
     
-    if (btnCreateFaction) { if(isLeader && !isGlobalInfoZone) btnCreateFaction.classList.remove('hidden'); else btnCreateFaction.classList.add('hidden'); }
-    if (btnCreateTopic) { if(isLeader) btnCreateTopic.classList.remove('hidden'); else btnCreateTopic.classList.add('hidden'); }
+    // Фракции (подразделы) может создавать только Руководство проекта
+    if (btnCreateFaction) { 
+        if(isProjectAdmin && !isGlobalInfoZone) btnCreateFaction.classList.remove('hidden'); 
+        else btnCreateFaction.classList.add('hidden'); 
+    }
+    
+    // Создавать ТЕМЫ теперь может и Руководство проекта, и ЛИДЕР этой фракции
+    if (btnCreateTopic) { 
+        if(isProjectAdmin || hasFactionRights) btnCreateTopic.classList.remove('hidden'); 
+        else btnCreateTopic.classList.add('hidden'); 
+    }
 }
 
 function showScreen(screenId) {
@@ -264,7 +276,7 @@ function deleteFaction(fId) {
 }
 
 // ==========================================
-// 5. ДВИЖОК ТЕМ И ТЕКСТОВЫЙ РЕДАКТОР WORD
+// 5. ДВИЖОК ТЕМ И УПРАВЛЕНИЕ ПУБЛИКАЦИЯМИ
 // ==========================================
 function openFactionTopics(factionId, factionName, context = "server") {
     selectedFactionId = factionId;
@@ -276,7 +288,9 @@ function openFactionTopics(factionId, factionName, context = "server") {
     const btnBack = document.getElementById('btn-back-to-factions');
     if (btnBack) btnBack.onclick = () => { if (isGlobalInfoZone) showScreen('screen-forum'); else showScreen('screen-factions'); };
 
+    // Сначала обновляем видимость кнопок на основе названия открытой фракции
     updateAdminButtonsVisibility();
+    
     const div = document.getElementById('topics-list');
     if (!div) return;
 
@@ -316,7 +330,6 @@ function viewSelectedTopic(tId, tTitle) {
     if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = "Загрузка контента публикации...";
     if(document.getElementById('topic-editor-inputs')) document.getElementById('topic-editor-inputs').classList.add('hidden');
     
-    // ПРОВЕРКА ПРАВ: Панель открывается либо Руководству, либо действующему лидеру конкретно этой фракции
     const hasAccess = checkModerationRights();
     const adminBlock = document.getElementById('topic-admin-editor-block');
     if (adminBlock) { 
@@ -344,6 +357,28 @@ function toggleTopicEditor() {
 function formatText(command, value = null) {
     document.execCommand(command, false, value);
     document.getElementById('editor-rich-content').focus();
+}
+
+// Изменено: Лидеры могут создавать темы в своих фракциях
+function createNewTopic() {
+    if (!currentUserData) return;
+    if (!checkModerationRights()) {
+        alert("У вас нет прав на создание тем в этой фракции!");
+        return;
+    }
+    if (currentUserData.isMuted) { alert("Вы замучены!"); return; }
+    const name = document.getElementById('new-topic-name').value.trim();
+    if (!name) return;
+    
+    const dbPath = isGlobalInfoZone ? `global_topics/${selectedFactionId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`;
+    
+    db.ref(dbPath).push({
+        title: name,
+        content: ""
+    }).then(() => {
+        document.getElementById('new-topic-name').value = "";
+        document.getElementById('create-topic-form').classList.add('hidden');
+    });
 }
 
 function saveTopicContent() {
@@ -380,23 +415,6 @@ function createNewFaction() {
     db.ref(`factions/${selectedServerId}/${selectedCategoryId}/fact_${Date.now()}`).set({ name: name }).then(() => {
         document.getElementById('new-faction-name').value = "";
         document.getElementById('create-faction-form').classList.add('hidden');
-    });
-}
-
-function createNewTopic() {
-    if (!currentUserData || currentUserData.role !== "Руководство проекта") return;
-    if (currentUserData.isMuted) { alert("Вы замучены!"); return; }
-    const name = document.getElementById('new-topic-name').value.trim();
-    if (!name) return;
-    
-    const dbPath = isGlobalInfoZone ? `global_topics/${selectedFactionId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}`;
-    
-    db.ref(dbPath).push({
-        title: name,
-        content: ""
-    }).then(() => {
-        document.getElementById('new-topic-name').value = "";
-        document.getElementById('create-topic-form').classList.add('hidden');
     });
 }
 
