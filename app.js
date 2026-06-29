@@ -151,25 +151,29 @@ function openProfileSettings() {
 }
 
 async function saveProfileSettings() {
-    // 1. Сначала находим поле ввода (инпут) на странице. 
-    // Если у инпута другой id, например id="username", замените 'nickname' на 'username'
+    // 1. Находим кнопку сохранения, чтобы менять её текст (ИСПРАВЛЕНИЕ ТУТ)
+    // Ищем кнопку по ID 'btnSave', если ID другой — скрипт попробует найти её по тексту внутри
+    const btnSave = document.getElementById('btnSave') || document.querySelector('button[onclick*="saveProfileSettings"]');
+
+    // 2. Сначала находим поле ввода (инпут) на странице.
     const nicknameInput = document.getElementById('nickname') || document.getElementById('username') || document.querySelector('input[type="text"]');
     
-    // 2. Получаем само значение из инпута и убираем случайные пробелы по краям
+    // 3. Получаем само значение из инпута
     const nickname = nicknameInput ? nicknameInput.value.trim() : "";
 
-    // 3. Проверяем длину (теперь переменная nickname существует, и ошибки не будет)
+    // 4. Проверяем длину
     if (!nickname || nickname.length <= 3) {
         alert("Никнейм должен быть более 3 символов");
-        return; // Останавливаем выполнение, чтобы пустой ник не сохранялся
+        return; 
     }
 
-    // --- ОСТАЛЬНОЙ ВАШ КОД НИЖЕ ---
-    // (Здесь должен идти ваш старый код, который отправляет данные в базу или сохраняет их)
     console.log("Никнейм прошел проверку:", nickname);
-
-    btnSave.innerText = "⏳ Сохранение...";
-    btnSave.disabled = true;
+    
+    // Проверяем, нашлась ли кнопка, прежде чем менять ей свойства
+    if (btnSave) {
+        btnSave.innerText = "⏳ Сохранение...";
+        btnSave.disabled = true;
+    }
 
     try {
         let avatarUrl = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
@@ -189,23 +193,27 @@ async function saveProfileSettings() {
             bannerUrl = await bannerRef.getDownloadURL();
         }
 
-        // Обновление всей карточки в Realtime DB
-        await db.ref('users/' + auth.currentUser.uid).update({
-            username: newUsername,
-            bio: newBio,
+        // Обновление данных в базе
+        await db.collection("users").doc(auth.currentUser.uid).update({
+            username: nickname, 
             avatar: avatarUrl,
             banner: bannerUrl
         });
 
-       showNotification("Никнейм успешно изменен!");
-        showScreen('screen-forum');
+        alert("Профиль успешно обновлен!");
+        location.reload(); 
+
     } catch (error) {
-        alert("Произошла ошибка при загрузке: " + error.message);
+        console.error("Ошибка при сохранении:", error);
+        alert("Произошла ошибка при сохранении профиля.");
     } finally {
-        btnSave.innerText = "💾 Сохранить изменения";
-        btnSave.disabled = false;
+        if (btnSave) {
+            btnSave.innerText = "Сохранить изменения";
+            btnSave.disabled = false;
+        }
     }
 }
+
 
 // ==========================================
 // СИСТЕМА ГЛОБАЛЬНОЙ СТАТИСТИКИ
