@@ -16,6 +16,7 @@ const db = firebase.database();
 
 function isProjectManagement() {
     return currentUserData && currentUserData.role === 'Руководство проекта';
+}
 
 let currentUserData = null;
 let viewedUserId = null;
