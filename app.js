@@ -26,14 +26,14 @@ let allUsersCache = {};
 let selectedServerId = ""; 
 let selectedCategoryId = "";
 let selectedFactionId = ""; 
-let selectedTopicId = ""; // Хранит ID открытой темы
+let selectedTopicId = ""; 
 let base64Avatar = ""; 
 let base64Banner = "";
 let isGlobalInfoZone = false; 
 let viewedProfileUid = "";
 
 // ==========================================
-// 2. СЛУШАТЕЛЬ СЕССИИ И ПРОФИЛЯ
+// 2. СЛУШАТЕЛЬ СЕССИИ И РОЛЕЙ
 // ==========================================
 auth.onAuthStateChanged(user => {
     const btnAdmin = document.getElementById('btn-admin-panel');
@@ -97,7 +97,7 @@ function showScreen(screenId) {
 }
 
 // ==========================================
-// 3. НАСТРОЙКИ ПРОФИЛЯ
+// 3. СТРАНИЦА НАСТРОЕК
 // ==========================================
 function previewImage(input, previewId, isBanner = false) {
     const file = input.files[0];
@@ -125,7 +125,7 @@ function saveProfileChanges() {
 }
 
 // ==========================================
-// 4. СТРУКТУРА СЕРВЕРОВ И ФРАКЦИЙ
+// 4. СЕРВЕРЫ И КАТЕГОРИИ
 // ==========================================
 function loadServers() {
     const infoDiv = document.getElementById('info-sections-list');
@@ -239,7 +239,7 @@ function deleteFaction(fId) {
 }
 
 // ==========================================
-// 5. ДВИЖОК ТЕМ И ТЕКСТОВОГО РЕДАКТОРА
+// 5. ДВИЖОК ТЕМ И ФОРМАТИРОВАНИЯ WORD
 // ==========================================
 function openFactionTopics(factionId, factionName, context = "server") {
     selectedFactionId = factionId;
@@ -268,8 +268,6 @@ function openFactionTopics(factionId, factionName, context = "server") {
             const item = document.createElement('div');
             item.className = 'forum-category-item';
             item.style.borderLeft = "4px solid #ff4b4b";
-            
-            // Клик открывает тему для чтения и редактирования
             item.onclick = () => viewSelectedTopic(tId, topic.title);
             
             let deleteBtn = isLeader ? `<button class="btn-delete-item" onclick="deleteTopic('${tId}'); event.stopPropagation();">❌ Удалить</button>` : '';
@@ -290,7 +288,7 @@ function viewSelectedTopic(tId, tTitle) {
     showScreen('screen-view-topic');
     
     if(document.getElementById('topic-view-title')) document.getElementById('topic-view-title').innerText = tTitle;
-    if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerText = "Загрузка контента публикации...";
+    if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = "Загрузка контента публикации...";
     if(document.getElementById('topic-editor-inputs')) document.getElementById('topic-editor-inputs').classList.add('hidden');
     
     const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
@@ -304,8 +302,10 @@ function viewSelectedTopic(tId, tTitle) {
         if (!data) return;
         
         const content = data.content || "В данной теме пока нет опубликованного текста. Руководство проекта может добавить его через текстовый редактор ниже.";
-        if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerText = content;
-        if(document.getElementById('textarea-topic-content')) document.getElementById('textarea-topic-content').value = data.content || "";
+        
+        // Перевод отображения и редактора на .innerHTML для сохранения оформления (цвета, шрифты, стили)
+        if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = content;
+        if(document.getElementById('editor-rich-content')) document.getElementById('editor-rich-content').innerHTML = data.content || "";
     });
 }
 
@@ -313,14 +313,22 @@ function toggleTopicEditor() {
     document.getElementById('topic-editor-inputs').classList.toggle('hidden');
 }
 
+// Выполнение базовых команд форматирования Ворд
+function formatText(command, value = null) {
+    document.execCommand(command, false, value);
+    document.getElementById('editor-rich-content').focus();
+}
+
 function saveTopicContent() {
     if (!currentUserData || currentUserData.role !== "Руководство проекта") return;
-    const text = document.getElementById('textarea-topic-content').value;
+    
+    // Получаем полный HTML код со всеми стилями оформления из редактора
+    const text = document.getElementById('editor-rich-content').innerHTML;
     
     const basePath = isGlobalInfoZone ? `global_topics/${selectedFactionId}/${selectedTopicId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}/${selectedTopicId}`;
     
     db.ref(basePath).update({ content: text }).then(() => {
-        alert("Текст публикации успешно сохранен и опубликован!");
+        alert("Текст публикации успешно оформлен и сохранен!");
         document.getElementById('topic-editor-inputs').classList.add('hidden');
     });
 }
@@ -331,10 +339,7 @@ function deleteTopic(tId) {
     db.ref(dbPath).remove();
 }
 
-function backFromTopicView() {
-    showScreen('screen-topics');
-}
-
+function backFromTopicView() { showScreen('screen-topics'); }
 function toggleFactionForm() { document.getElementById('create-faction-form').classList.toggle('hidden'); }
 function toggleTopicForm() { document.getElementById('create-topic-form').classList.toggle('hidden'); }
 
@@ -372,7 +377,7 @@ function toggleHideServer(id, stat) {
 }
 
 // ==========================================
-// 6. ПУБЛИЧНЫЕ ПРОФИЛИ, ЛАЙКИ И КОММЕНТАРИИ
+// 6. СТЕНЫ, КОММЕНТАРИИ И ЛАЙКИ ИГРОКОВ
 // ==========================================
 function openPublicProfile(uid) {
     viewedProfileUid = uid;
@@ -429,7 +434,7 @@ function sendProfileComment() {
 }
 
 // ==========================================
-// 7. АДМИНКА, ПОИСК И МОДЕРАЦИЯ
+// 7. МОДЕРАЦИЯ И АДМИНИСТРИРОВАНИЕ
 // ==========================================
 function openAdminPanel() {
     showScreen('screen-admin');
@@ -500,7 +505,7 @@ function setPunishment(uid, type) {
 }
 
 // ==========================================
-// 8. АВТОРИЗАЦИЯ И СБРОСЫ
+// 8. АВТОРИЗАЦИЯ И СБРОСЫ ПАРОЛЕЙ
 // ==========================================
 function loginUser() {
     const email = document.getElementById('login-email').value.trim(); const pass = document.getElementById('login-password').value;
