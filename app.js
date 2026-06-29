@@ -735,3 +735,33 @@ function setPunishment(uid, type) {
 }
 
 document.addEventListener("DOMContentLoaded", () => { loadServers(); });
+// Функция регистрации для старого файла
+function registerUser() {
+    const email = document.getElementById('reg-email').value.trim();
+    const username = document.getElementById('reg-username').value.trim();
+    const pass = document.getElementById('reg-password').value;
+
+    if (!email || !username || !pass) {
+        alert("Заполните все поля!");
+        return;
+    }
+
+    firebase.auth().createUserWithEmailAndPassword(email, pass)
+        .then(userCredential => {
+            const user = userCredential.user;
+            firebase.database()ref('users/' + user.uid).set({
+                username: username,
+                role: "Пользователь",
+                avatar: "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png",
+                isBanned: false,
+                isMuted: false
+            }).then(() => {
+                alert("Успешно!");
+                location.reload();
+            });
+        })
+        .catch(err => {
+            alert("Ошибка: " + err.message);
+        });
+}
+
