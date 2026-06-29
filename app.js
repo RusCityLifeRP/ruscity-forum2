@@ -159,8 +159,8 @@ async function saveProfileSettings() {
     const avatarFile = document.getElementById('file-avatar-input').files[0];
     const bannerFile = document.getElementById('file-banner-input').files[0];
 
-    if (!newUsername || !newUsername.includes("_")) {
-        return alert("Никнейм обязателен к вводу при регистрации(Пример:Future)");
+    if (!newUsername || !newUsername.lenght < 3) {
+        return alert("Никнейм должен быть более 3 символов");
     }
 
     btnSave.innerText = "⏳ Сохранение...";
