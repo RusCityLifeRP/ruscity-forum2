@@ -51,11 +51,10 @@ let currentFactionId = null;
 let currentTopicId = null;
 let currentUserData = null;
 
-// Переменные для загружаемых файлов в профиле (объявлены, чтобы не вызывать ReferenceError)
 let avatarFile = null;
 let bannerFile = null;
 
-// СЛУШАТЕЛИ ВЫБОРА ФАЙЛОВ В ИНПУТАХ (для корректной работы проводника)
+// СЛУШАТЕЛИ ВЫБОРА ФАЙЛОВ
 document.addEventListener("DOMContentLoaded", () => {
     const avatarInput = document.getElementById('file-avatar-input');
     const bannerInput = document.getElementById('file-banner-input');
@@ -64,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// СУПЕР-ПРАВА И ДОСТУПЫ С УЧЕТОМ СЕРВЕРА
+// СУПЕР-ПРАВА И ДОСТУПЫ
 // ==========================================
 function hasEditAccess() {
     if (!currentUserData) return false;
@@ -98,7 +97,7 @@ function hasEditAccess() {
 }
 
 // ==========================================
-// СЛУШАТЕЛЬ АВТОРИЗАЦИИ И СИСТЕМЫ ОНЛАЙНА
+// СЛУШАТЕЛЬ АВТОРИЗАЦИИ
 // ==========================================
 auth.onAuthStateChanged(user => {
     const btnAdmin = document.getElementById('btn-admin-panel');
@@ -147,7 +146,7 @@ auth.onAuthStateChanged(user => {
 });
 
 // ==========================================
-// ГИБКАЯ НАСТРОЙКА ПРОФИЛЯ С ПРОВОДНИКОМ
+// НАСТРОЙКИ ПРОФИЛЯ
 // ==========================================
 function openProfileSettings() {
     if (!currentUserData) return alert("Вы должны быть авторизованы!");
@@ -161,7 +160,7 @@ function openProfileSettings() {
 
 async function saveProfileSettings() {
     const btnSave = document.getElementById('btnSave') || document.querySelector('button[onclick*="saveProfileSettings"]');
-    const nicknameInput = document.getElementById('edit-username'); // Исправлено на правильный ID формы настроек
+    const nicknameInput = document.getElementById('edit-username');
     
     let nickname = "";
     if (nicknameInput) {
@@ -171,8 +170,6 @@ async function saveProfileSettings() {
         alert("Ошибка: Поле ввода никнейма не найдено.");
         return;
     }
-
-    console.log("Проверяем никнейм перед отправкой. Введено букв:", nickname.length);
 
     if (!nickname || nickname.length <= 3) {
         alert("Никнейм должен быть более 3 символов");
@@ -185,10 +182,7 @@ async function saveProfileSettings() {
     }
 
     try {
-        if (!auth.currentUser) {
-            alert("Ошибка: Вы не авторизованы!");
-            return;
-        }
+        if (!auth.currentUser) return alert("Ошибка: Вы не авторизованы!");
 
         let avatarUrl = currentUserData.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
         let bannerUrl = currentUserData.banner || "";
@@ -206,7 +200,6 @@ async function saveProfileSettings() {
             bannerUrl = await bannerRef.getDownloadURL();
         }
 
-        // Обновление в Realtime Database (так как вы используете db.ref в остальном коде)
         await db.ref('users/' + auth.currentUser.uid).update({
             username: nickname, 
             avatar: avatarUrl,
@@ -226,6 +219,82 @@ async function saveProfileSettings() {
             btnSave.disabled = false;
         }
     }
+}
+
+// ==========================================
+// ИСПРАВЛЕННАЯ СИСТЕМА РЕГИСТРАЦИИ И ВХОДА
+// ==========================================
+async function registerUser() {
+    // Получаем элементы DOM
+    const uEl = document.getElementById('reg-username');
+    const eEl = document.getElementById('reg-email');
+    const pEl = document.getElementById('reg-password');
+
+    // Логирование для отладки в консоли браузера (поможет поймать ошибки верстки)
+    console.log("Поиск инпутов в HTML:", { 
+        "Наличие reg-username": !!uEl, 
+        "Наличие reg-email": !!eEl, 
+        "Наличие reg-password": !!pEl 
+    });
+
+    const usernameInput = uEl ? uEl.value.trim() : "";
+    const email = eEl ? eEl.value.trim() : "";
+    const password = pEl ? pEl.value.trim() : "";
+    
+    console.log("Считанные JS значения из полей:", { 
+        usernameInput: usernameInput, 
+        email: email, 
+        passwordдлина: password.length 
+    });
+    
+    // Проверка заполненности
+    if (!usernameInput || !email || !password) {
+        return alert("Заполните все поля! Если вы всё ввели, но видите этот алерт — значит ID полей в вашем HTML-файле не совпадают с 'reg-username', 'reg-email' или 'reg-password'. Проверьте код!");
+    }
+    
+    if (usernameInput.length < 3) return alert("Формат никнейма должен быть более 3-х символов!");
+    
+    try {
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        await db.ref('users/' + cred.user.uid).set({
+            username: usernameInput, 
+            email: email, 
+            role: "Пользователь", 
+            isLeader: false, 
+            isSubLeader: false,
+            leaderFaction: "", 
+            leaderServer: "", 
+            avatar: "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png", 
+            banner: "", 
+            isBanned: false, 
+            likes: 0, 
+            bio: "", 
+            status: "online", 
+            registeredAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        alert("Успешно зарегистрировались!"); 
+        showScreen('screen-forum');
+    } catch(err) {
+        alert("Ошибка Firebase: " + err.message);
+    }
+}
+
+function loginUser() {
+    const email = document.getElementById('login-email') ? document.getElementById('login-email').value.trim() : "";
+    const password = document.getElementById('login-password') ? document.getElementById('login-password').value.trim() : "";
+    if (!email || !password) return alert("Заполните поля входа!");
+    
+    auth.signInWithEmailAndPassword(email, password).then(cred => {
+        db.ref(`users/${cred.user.uid}/status`).set("online");
+        alert("Успешно вошли!"); 
+        showScreen('screen-forum');
+    }).catch(err => alert(err.message));
+}
+
+function logout() {
+    if (auth.currentUser) db.ref(`users/${auth.currentUser.uid}/status`).set("offline");
+    auth.signOut().then(() => showScreen('screen-forum'));
 }
 
 // ==========================================
@@ -268,7 +337,7 @@ db.ref('users').on('value', snapshot => {
 });
 
 // ==========================================
-// ПРОСМОТР ЧУЖИХ ПРОФИЛЕЙ ПОЛЬЗОВАТЕЛЕЙ
+// ПРОСМОТР ПУБЛИЧНЫХ ПРОФИЛЕЙ
 // ==========================================
 let viewTargetUid = null;
 function openPublicProfile(uid) {
@@ -310,7 +379,7 @@ function openPublicProfile(uid) {
 }
 
 // ==========================================
-// ВСЕ ОСТАЛЬНЫЕ СТАНДАРТНЫЕ ФУНКЦИИ ФОРУМА
+// ФУНКЦИИ ВЕТОК И НАВИГАЦИИ ФОРУМА
 // ==========================================
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -472,7 +541,6 @@ function openTopicView(topicId, topicName) {
 }
 
 function backFromTopicView() { showScreen('screen-topics'); }
-// Добавлена отсутствующая общая функция очистки экранов при выходе на главную
 function backToHome() { currentServerId = null; currentCategoryId = null; currentFactionId = null; currentTopicId = null; showScreen('screen-forum'); }
 
 function toggleSubTopicForm() { const f = document.getElementById('create-subtopic-form'); if (f) f.classList.toggle('hidden'); }
@@ -513,59 +581,10 @@ function saveTopicContent() {
 }
 
 // ==========================================
-// ИСПРАВЛЕННАЯ СИСТЕМА РЕГИСТРАЦИИ (ДОБАВЛЕН ASYNC)
+// СТЕНА ПРОФИЛЯ (ЛАЙКИ И КОММЕНТАРИИ)
 // ==========================================
-async function registerUser() {
-    const usernameInput = document.getElementById('reg-username') ? document.getElementById('reg-username').value.trim() : "";
-    const email = document.getElementById('reg-email') ? document.getElementById('reg-email').value.trim() : "";
-    const password = document.getElementById('reg-password') ? document.getElementById('reg-password').value.trim() : "";
-    
-    if (!usernameInput || !email || !password) return alert("Заполните все поля!");
-    if (usernameInput.length < 3) return alert("Формат должен быть более 3-х символов!");
-    
-    try {
-        const cred = await auth.createUserWithEmailAndPassword(email, password);
-        await db.ref('users/' + cred.user.uid).set({
-            username: usernameInput, 
-            email: email, 
-            role: "Пользователь", 
-            isLeader: false, 
-            isSubLeader: false,
-            leaderFaction: "", 
-            leaderServer: "", 
-            avatar: "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png", 
-            banner: "", 
-            isBanned: false, 
-            likes: 0, 
-            bio: "", 
-            status: "online", 
-            registeredAt: firebase.database.ServerValue.TIMESTAMP
-        });
-        
-        alert("Успешно!"); 
-        showScreen('screen-forum');
-    } catch(err) {
-        alert(err.message);
-    }
-}
-
-function loginUser() {
-    const email = document.getElementById('login-email') ? document.getElementById('login-email').value.trim() : "";
-    const password = document.getElementById('login-password') ? document.getElementById('login-password').value.trim() : "";
-    if (!email || !password) return alert("Заполните поля!");
-    auth.signInWithEmailAndPassword(email, password).then(cred => {
-        db.ref(`users/${cred.user.uid}/status`).set("online");
-        alert("Успешно вошли!"); showScreen('screen-forum');
-    }).catch(err => alert(err.message));
-}
-
-function logout() {
-    if (auth.currentUser) db.ref(`users/${auth.currentUser.uid}/status`).set("offline");
-    auth.signOut().then(() => showScreen('screen-forum'));
-}
-
 function toggleProfileLike() {
-    if (!auth.currentUser) return alert("Войдите на forum!"); if (auth.currentUser.uid === viewTargetUid) return alert("Нельзя лайкать себя!");
+    if (!auth.currentUser) return alert("Войдите на форум!"); if (auth.currentUser.uid === viewTargetUid) return alert("Нельзя лайкать себя!");
     const likeRef = db.ref(`profile_likes/${viewTargetUid}/${auth.currentUser.uid}`);
     const userLikesRef = db.ref(`users/${viewTargetUid}/likes`);
     likeRef.once('value', snapshot => {
@@ -610,7 +629,9 @@ function loadProfileComments() {
     });
 }
 
+// ==========================================
 // АДМИН-ЦЕНТР
+// ==========================================
 let allUsersCache = {};
 function openAdminPanel() {
     const allowed = ["Руководство проекта", "Спец. Админ", "Главный admina", "Главный админ", "Заместитель главного admina", "Главный куратор"];
@@ -674,9 +695,7 @@ function showNotification(message) {
     const toast = document.createElement('div');
     toast.className = 'toast-success';
     toast.innerHTML = `<span>✅</span> ${message}`;
-    
     container.appendChild(toast);
-
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(20px)';
