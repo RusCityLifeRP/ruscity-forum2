@@ -53,7 +53,6 @@ body {
     transform: scale(1.03);
 }
 
-/* Эффект неонового свечения текста */
 .logo-main {
     color: #ffffff;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.6), 0 0 20px rgba(59, 130, 246, 0.4);
@@ -89,7 +88,6 @@ body {
     box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
 }
 
-/* Пульсирующая админка */
 @keyframes adminGlow {
     0% { box-shadow: 0 0 8px rgba(255, 75, 75, 0.4); border-color: rgba(255, 75, 75, 0.6); }
     50% { box-shadow: 0 0 18px rgba(255, 75, 75, 0.8); border-color: rgba(255, 75, 75, 1); }
@@ -124,7 +122,6 @@ body {
     gap: 15px;
 }
 
-/* Интерактивные строки категорий */
 .forum-category-item {
     background: #161c24;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -145,9 +142,7 @@ body {
     transition: 0.5s;
 }
 
-.forum-category-item:hover::before {
-    left: 100%;
-}
+.forum-category-item:hover::before { left: 100%; }
 
 .forum-category-item:hover {
     transform: translateX(6px);
@@ -156,18 +151,9 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(59, 130, 246, 0.05);
 }
 
-.forum-category-item h3 {
-    font-size: 16px;
-    color: #ffffff;
-    margin-bottom: 4px;
-}
+.forum-category-item h3 { font-size: 16px; color: #ffffff; margin-bottom: 4px; }
+.forum-category-item p { font-size: 13px; color: #8a99ad; }
 
-.forum-category-item p {
-    font-size: 13px;
-    color: #8a99ad;
-}
-
-/* Карточки серверов */
 .server-card-item {
     display: flex;
     justify-content: space-between;
@@ -179,11 +165,7 @@ body {
     transition: all 0.3s ease;
 }
 
-.server-clickable-area {
-    flex-grow: 1;
-    cursor: pointer;
-}
-
+.server-clickable-area { flex-grow: 1; cursor: pointer; }
 .server-card-item:hover {
     border-color: rgba(16, 185, 129, 0.4);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -220,10 +202,7 @@ body {
     transition: all 0.2s ease;
 }
 
-.btn-secondary:hover {
-    background: #2d3645;
-    color: #ffffff;
-}
+.btn-secondary:hover { background: #2d3645; color: #ffffff; }
 
 .btn-logout {
     background: rgba(255, 75, 75, 0.1);
@@ -243,7 +222,7 @@ body {
     box-shadow: 0 0 10px rgba(255, 75, 75, 0.4);
 }
 
-/* ПОЛЯ ВВОДА (ИНПУТЫ) С ПОДСТВЕТКОЙ */
+/* ИНПУТЫ С ПОДСТВЕТКОЙ */
 input[type="text"], input[type="email"], input[type="password"] {
     background: #12171f;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -261,12 +240,6 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     background: #161c24;
 }
 
-/* ЗОНА МЕНЮ ПОЛЬЗОВАТЕЛЯ В ШАПКЕ */
-.auth-zone {
-    display: flex;
-    align-items: center;
-}
-
 .user-profile-menu {
     display: flex;
     align-items: center;
@@ -279,10 +252,7 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     transition: all 0.2s ease;
 }
 
-.user-profile-menu:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.1);
-}
+.user-profile-menu:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.1); }
 
 .profile-avatar-mini {
     width: 32px;
@@ -293,13 +263,9 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
 }
 
-.profile-username-text {
-    font-weight: 600;
-    font-size: 14px;
-    color: #e2e8f0;
-}
+.profile-username-text { font-weight: 600; font-size: 14px; color: #e2e8f0; }
 
-/* НАСТРОЙКИ ПРОФИЛЯ С КАРТОЧКОЙ БАННЕРА */
+/* ПРОФИЛИ С БАННЕРОМ */
 .profile-editor-card {
     background: #161c24;
     border-radius: 12px;
@@ -343,19 +309,8 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     padding: 0 20px;
 }
 
-.input-label {
-    font-size: 13px;
-    color: #8a99ad;
-    font-weight: 600;
-    margin-bottom: -5px;
-}
-
-.upload-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-top: 5px;
-}
+.input-label { font-size: 13px; color: #8a99ad; font-weight: 600; margin-bottom: -5px; }
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 5px; }
 
 .btn-upload-custom {
     background: #1e2530;
@@ -364,47 +319,14 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     padding: 12px;
     border-radius: 6px;
     cursor: pointer;
-    width: 100%;
     text-align: center;
     font-size: 13px;
     transition: all 0.2s ease;
 }
 
-.btn-upload-custom:hover {
-    border-color: #3b82f6;
-    color: #ffffff;
-    background: rgba(59, 130, 246, 0.05);
-}
+.btn-upload-custom:hover { border-color: #3b82f6; color: #ffffff; background: rgba(59, 130, 246, 0.05); }
 
-/* АДМИНКА */
-.admin-list-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.admin-user-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #161c24;
-    padding: 12px 20px;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.03);
-}
-
-select {
-    background: #12171f;
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.1);
-    padding: 8px 12px;
-    border-radius: 4px;
-    outline: none;
-    cursor: pointer;
-}
-
-/* Улучшенные карточки в админ-панели */
+/* КАРТОЧКИ В АДМИНКЕ И НАКАЗАНИЯ */
 .admin-user-card {
     background: #161c24;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -416,7 +338,6 @@ select {
     transition: all 0.3s ease;
 }
 
-/* Стили состояний */
 .admin-user-card.status-banned {
     border-color: #ff4b4b;
     background: linear-gradient(135deg, #161c24 0%, rgba(255, 75, 75, 0.05) 100%);
@@ -427,44 +348,34 @@ select {
     background: linear-gradient(135deg, #161c24 0%, rgba(255, 159, 67, 0.05) 100%);
 }
 
-.admin-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 10px;
-}
+.admin-card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 10px; }
+.admin-actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
 
-.admin-actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 10px;
-}
-
-.btn-punish {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 5px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    color: #fff;
-}
-
+.btn-punish { padding: 8px 12px; border: none; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; color: #fff; }
 .btn-punish.ban { background: #ff4b4b; }
 .btn-punish.unban { background: #10b981; }
 .btn-punish.mute { background: #ff9f43; }
 .btn-punish.unmute { background: #3b82f6; }
+.btn-punish:hover { filter: brightness(1.2); transform: translateY(-1px); }
 
-.btn-punish:hover {
-    filter: brightness(1.2);
-    transform: translateY(-1px);
+.status-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 700; }
+select { background: #12171f; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 4px; outline: none; cursor: pointer; }
+
+/* КОММЕНТАРИИ СТЕНЫ */
+.comment-item {
+    background: #12171f;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 12px 16px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
-.status-badge {
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-weight: 700;
-}
+.comment-header { display: flex; justify-content: space-between; font-size: 12px; }
+.comment-author { color: #3b82f6; font-weight: 600; cursor: pointer; }
+.comment-author:hover { text-decoration: underline; }
+.comment-text { color: #e2e8f0; font-size: 14px; word-break: break-word; }
+
+.clickable-profile-link { cursor: pointer; transition: color 0.2s ease; }
+.clickable-profile-link:hover { color: #3b82f6 !important; text-decoration: underline; }
