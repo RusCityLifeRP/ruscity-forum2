@@ -15,15 +15,24 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Базовые роли проекта
+// Базовые системные роли проекта
 const ROLES = [
     "Пользователь", "Заместитель главного администратора форума", "Главный администратор форума",
     "Заместитель главного администратора", "Главный администратор", "Специальный администратор", "Руководство проекта"
 ];
+// Список ролей, которые считаются Администрацией форума и имеют доступ к админ-панели и выдаче ролей
 const ADMIN_PANEL_ROLES = ["Руководство проекта", "Специальный администратор", "Главный администратор", "Заместитель главного администратора"];
+
+// Предустановленный список фракций (Москва LIVE теперь здесь как фракция)
+const LEADER_FACTIONS_LIST = [
+    "Правительства", "ГИБДД", "ЦГБ 7", "ЦГБ 3", "ФСИН", 
+    "Москва LIVE", "ФСБ", "Прокуратуры", "следственного комитета", 
+    "судебной власти", "ФСО", "Росгвардии", "Армии", "ЦОДД", "МВД"
+];
 
 let currentUserData = null;
 let allUsersCache = {}; 
+let serversCache = {}; // Кэш для хранения списка серверов (Москва, Сочи, Санкт-Петербург) из БД
 let selectedServerId = ""; 
 let selectedCategoryId = "";
 let selectedFactionId = ""; 
@@ -34,23 +43,24 @@ let isGlobalInfoZone = false;
 let viewedProfileUid = "";
 
 // ==========================================
-// 1.5 ДИНАМИЧЕСКАЯ СИСТЕМА ПРОВЕРКИ ПРАВ ЛИДЕРА
+// 1.5 УЛУЧШЕННАЯ СИСТЕМА ПРОВЕРКИ ПРАВ ЛИДЕРА
 // ==========================================
 function checkModerationRights() {
     if (!currentUserData) return false;
     
-    // Руководство проекта имеет абсолютный доступ ко всем разделам и серверам
+    // Руководство проекта имеет absolute доступ
     if (currentUserData.role === "Руководство проекта") return true;
 
-    // Очищаем заголовки страниц от смайликов и лишних пробелов для точного сопоставления ролей
-    const currentServerName = document.getElementById('current-server-title') ? document.getElementById('current-server-title').innerText.replace(/[^а-яА-ЯёЁa-zA-Z0-9 ]/g, '').trim() : "";
-    const currentFactionName = document.getElementById('current-faction-title') ? document.getElementById('current-faction-title').innerText.replace(/[^а-яА-ЯёЁa-zA-Z0-9 ]/g, '').trim() : "";
+    const currentServerName = document.getElementById('current-server-title') ? document.getElementById('current-server-title').innerText.replace(/[^а-яА-ЯёЁa-zA-Z0-9 ]/g, '').trim().toLowerCase() : "";
+    const currentFactionName = document.getElementById('current-faction-title') ? document.getElementById('current-faction-title').innerText.replace(/[^а-яА-ЯёЁa-zA-Z0-9 ]/g, '').trim().toLowerCase() : "";
 
-    // Собираем шаблон проверяемой роли, например: "Москва LIVE Лидер Правительство"
-    const expectedLeaderRole = `${currentServerName} Лидер ${currentFactionName}`;
+    if (!currentServerName || !currentFactionName) return false;
 
-    // Проверяем, совпадает ли роль лидера с текущим разделом
-    if (currentUserData.role === expectedLeaderRole) {
+    const userRoleLower = (currentUserData.role || "").toLowerCase();
+
+    // Проверяем, содержит ли роль игрока одновременно сервер, слово "лидер" и фракцию
+    if (userRoleLower.includes(currentServerName) && userRoleLower.includes("лидер") && 
+        (userRoleLower.includes(currentFactionName) || currentFactionName.includes(userRoleLower.replace(/.*лидер\s+/g, '')))) {
         return true;
     }
 
@@ -106,21 +116,18 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ: Теперь кнопка создания темы видна лидеру конкретной фракции!
 function updateAdminButtonsVisibility() {
     const isProjectAdmin = currentUserData && currentUserData.role === "Руководство проекта";
-    const hasFactionRights = checkModerationRights(); // Проверяем, является ли он лидером этой ветки
+    const hasFactionRights = checkModerationRights(); 
 
     const btnCreateFaction = document.getElementById('btn-show-create-faction');
     const btnCreateTopic = document.getElementById('btn-show-create-topic');
     
-    // Фракции (подразделы) может создавать только Руководство проекта
     if (btnCreateFaction) { 
         if(isProjectAdmin && !isGlobalInfoZone) btnCreateFaction.classList.remove('hidden'); 
         else btnCreateFaction.classList.add('hidden'); 
     }
     
-    // Создавать ТЕМЫ теперь может и Руководство проекта, и ЛИДЕР этой фракции
     if (btnCreateTopic) { 
         if(isProjectAdmin || hasFactionRights) btnCreateTopic.classList.remove('hidden'); 
         else btnCreateTopic.classList.add('hidden'); 
@@ -189,9 +196,16 @@ function loadServers() {
         serversDiv.innerHTML = '';
         let servers = snap.val();
         if (!servers) {
-            servers = { "moscow": { name: "Москва LIVE", hidden: false } };
+            // Инициализация серверов, если база пуста
+            servers = { 
+                "moscow": { name: "Москва", hidden: false },
+                "sochi": { name: "Сочи", hidden: false },
+                "spb": { name: "Санкт-Петербург", hidden: false }
+            };
             db.ref('servers').set(servers);
         }
+        serversCache = servers; 
+        
         Object.keys(servers).forEach(id => {
             const s = servers[id];
             const isLeader = currentUserData && currentUserData.role === "Руководство проекта";
@@ -288,7 +302,6 @@ function openFactionTopics(factionId, factionName, context = "server") {
     const btnBack = document.getElementById('btn-back-to-factions');
     if (btnBack) btnBack.onclick = () => { if (isGlobalInfoZone) showScreen('screen-forum'); else showScreen('screen-factions'); };
 
-    // Сначала обновляем видимость кнопок на основе названия открытой фракции
     updateAdminButtonsVisibility();
     
     const div = document.getElementById('topics-list');
@@ -342,9 +355,7 @@ function viewSelectedTopic(tId, tTitle) {
     db.ref(basePath).on('value', snap => {
         const data = snap.val();
         if (!data) return;
-        
-        const content = data.content || "В данной теме пока нет опубликованного текста. Лидер организации или руководство проекта могут добавить его через панель редактирования ниже.";
-        
+        const content = data.content || "В данной теме пока нет опубликованного текста.";
         if(document.getElementById('topic-view-content')) document.getElementById('topic-view-content').innerHTML = content;
         if(document.getElementById('editor-rich-content')) document.getElementById('editor-rich-content').innerHTML = data.content || "";
     });
@@ -359,7 +370,6 @@ function formatText(command, value = null) {
     document.getElementById('editor-rich-content').focus();
 }
 
-// Изменено: Лидеры могут создавать темы в своих фракциях
 function createNewTopic() {
     if (!currentUserData) return;
     if (!checkModerationRights()) {
@@ -383,7 +393,7 @@ function createNewTopic() {
 
 function saveTopicContent() {
     if (!checkModerationRights()) {
-        alert("У вас нет прав на редактирование и модерацию данного раздела фракции!");
+        alert("У вас нет прав на модерацию данного раздела!");
         return;
     }
     if (currentUserData.isMuted) { alert("Вы замучены на форуме!"); return; }
@@ -392,7 +402,7 @@ function saveTopicContent() {
     const basePath = isGlobalInfoZone ? `global_topics/${selectedFactionId}/${selectedTopicId}` : `topics/${selectedServerId}/${selectedCategoryId}/${selectedFactionId}/${selectedTopicId}`;
     
     db.ref(basePath).update({ content: text }).then(() => {
-        alert("Текст публикации успешно сохранен лидером раздела!");
+        alert("Текст публикации успешно сохранен!");
         document.getElementById('topic-editor-inputs').classList.add('hidden');
     });
 }
@@ -481,7 +491,7 @@ function sendProfileComment() {
 }
 
 // ==========================================
-// 7. МОДЕРАЦИЯ И АДМИНИСТРИРОВАНИЕ
+// 7. ЗАЩИЩЕННАЯ АДМИНКА С РАЗДЕЛЬНЫМИ СЕРВЕРАМИ И ФРАКЦИЯМИ
 // ==========================================
 function openAdminPanel() {
     showScreen('screen-admin');
@@ -506,26 +516,59 @@ function renderAdminUsers(usersData) {
             roleOptions += `<option value="${u.role}" selected>${u.role}</option>`;
         }
 
+        // Динамический список серверов (из БД или статический дефолт)
+        let serverOptions = Object.keys(serversCache).map(id => {
+            const name = serversCache[id].name || id;
+            return `<option value="${name}">${name}</option>`;
+        }).join('');
+        
+        if (!serverOptions) {
+            serverOptions = `
+                <option value="Москва">Москва</option>
+                <option value="Сочи">Сочи</option>
+                <option value="Санкт-Петербург">Санкт-Петербург</option>
+            `;
+        }
+
+        let factionOptions = LEADER_FACTIONS_LIST.map(f => `<option value="${f}">${f}</option>`).join('');
+
         card.innerHTML = `
             <div class="admin-card-header">
                 <div>
                     <strong class="clickable-profile-link" style="font-size:16px; color:#fff;" onclick="openPublicProfile('${uid}')">${u.username || 'Без имени'}</strong>
-                    <span style="font-size:12px; color:#8a99ad; margin-left:10px;">(Роль: ${u.role || 'Пользователь'})</span>
+                    <span style="font-size:12px; color:#8a99ad; margin-left:10px;">(Текущая роль: ${u.role || 'Пользователь'})</span>
                 </div>
                 ${statusBadge}
             </div>
-            <div style="display:flex; flex-direction:column; gap:10px; background:rgba(0,0,0,0.15); padding:10px; border-radius:6px;">
+            
+            <div style="display:flex; flex-direction:column; gap:12px; background:rgba(0,0,0,0.15); padding:12px; border-radius:6px; margin-top:10px;">
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:13px; color:#8a99ad;">Выбрать роль:</span>
-                    <select onchange="updateUserRole('${uid}', this.value)" style="flex-grow:1;">${roleOptions}</select>
+                    <span style="font-size:13px; color:#8a99ad; width:120px;">Системная роль:</span>
+                    <select onchange="updateUserRole('${uid}', this.value)" style="flex-grow:1; padding:5px;">${roleOptions}</select>
                 </div>
-                <div style="display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px;">
-                    <span style="font-size:13px; color:#ff4b4b; font-weight:600;">Назначить лидером вручную:</span>
-                    <input type="text" placeholder="Пример: Москва LIVE Лидер Правительство" style="flex-grow:1; padding:5px 10px; font-size:12px;" id="custom-role-${uid}">
-                    <button class="btn-primary" style="padding:5px 10px; font-size:12px;" onclick="assignCustomLeaderRole('${uid}')">Ок</button>
+                
+                <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                    <span style="font-size:13px; color:#ff9f43; font-weight:600;">👑 Назначить Лидером организации:</span>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <select id="leader-server-${uid}" style="padding:5px; width:150px;">
+                            ${serverOptions}
+                        </select>
+                        <span style="color:#8a99ad; font-size:13px;">Лидер</span>
+                        <select id="leader-faction-${uid}" style="padding:5px; flex-grow:1;">
+                            ${factionOptions}
+                        </select>
+                        <button class="btn-primary" style="padding:5px 12px; font-size:12px; height:32px;" onclick="assignSelectLeaderRole('${uid}')">Выдать роль</button>
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                    <span style="font-size:12px; color:#8a99ad; width:120px;">Ввести вручную:</span>
+                    <input type="text" placeholder="Пример: Сочи Лидер Москва LIVE" style="flex-grow:1; padding:5px 10px; font-size:12px;" id="custom-role-${uid}">
+                    <button class="btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="assignCustomLeaderRole('${uid}')">Ок</button>
                 </div>
             </div>
-            <div class="admin-actions-grid">
+
+            <div class="admin-actions-grid" style="margin-top:10px;">
                 ${u.isBanned ? `<button class="btn-punish unban" onclick="setPunishment('${uid}', 'unban')">🔓 Разбанить</button>` : `<button class="btn-punish ban" onclick="setPunishment('${uid}', 'ban')">❌ Бан аккаунта</button>`}
                 ${u.isMuted ? `<button class="btn-punish unmute" onclick="setPunishment('${uid}', 'unmute')">🔊 Снять мут</button>` : `<button class="btn-punish mute" onclick="setPunishment('${uid}', 'mute')">🔇 Выдать мут</button>`}
             </div>`;
@@ -533,7 +576,30 @@ function renderAdminUsers(usersData) {
     });
 }
 
+function assignSelectLeaderRole(uid) {
+    if (!currentUserData || !ADMIN_PANEL_ROLES.includes(currentUserData.role)) {
+        alert("У вас нет прав администратора форума для выдачи ролей!");
+        return;
+    }
+
+    const serverSelect = document.getElementById(`leader-server-${uid}`);
+    const factionSelect = document.getElementById(`leader-faction-${uid}`);
+    if (!serverSelect || !factionSelect) return;
+
+    // Генерирует строку вида "Сочи Лидер Москва LIVE" или "Москва Лидер ГИБДД"
+    const fullLeaderRole = `${serverSelect.value} Лидер ${factionSelect.value}`;
+    
+    updateUserRole(uid, fullLeaderRole);
+    alert(`Игроку успешно присвоен статус лидерства:\n${fullLeaderRole}`);
+    openAdminPanel();
+}
+
 function assignCustomLeaderRole(uid) {
+    if (!currentUserData || !ADMIN_PANEL_ROLES.includes(currentUserData.role)) {
+        alert("У вас нет прав администратора форума для выдачи ролей!");
+        return;
+    }
+
     const input = document.getElementById(`custom-role-${uid}`);
     if (!input) return;
     const value = input.value.trim();
@@ -574,9 +640,6 @@ function setPunishment(uid, type) {
     });
 }
 
-// ==========================================
-// 8. АВТОРИЗАЦИЯ И СБРОСЫ ПАРОЛЕЙ
-// ==========================================
 function loginUser() {
     const email = document.getElementById('login-email').value.trim(); const pass = document.getElementById('login-password').value;
     if(!email || !pass) return;
