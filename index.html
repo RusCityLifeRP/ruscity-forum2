@@ -20,7 +20,7 @@
             <button onclick="showScreen('screen-forum')" class="nav-btn-modern">🏠 Главная</button>
             <button id="btn-profile-edit" class="nav-btn-modern hidden" onclick="showScreen('screen-profile')">⚙️ Настройки</button>
             <button id="btn-admin-panel" class="nav-btn-modern btn-admin-accent hidden" onclick="openAdminPanel()">👑 Админ-панель</button>
-            <button id="btn-header-register" onclick="showScreen('screen-register')" class="nav-btn-register">Регистрация</button>
+            <button id="btn-header-register" onclick="showScreen('screen-register')" class="nav-btn">Регистрация</button>
         </nav>
 
         <div class="auth-zone">
@@ -37,6 +37,7 @@
 
     <main class="forum-container">
         
+        <!-- ГЛАВНЫЙ ЭКРАН -->
         <div id="screen-forum" class="screen">
             <h2 class="page-title">Важная информация</h2>
             <div id="info-sections-list" class="sections-list" style="margin-bottom: 40px;"></div>
@@ -45,12 +46,14 @@
             <div id="servers-list" class="sections-list"></div>
         </div>
 
+        <!-- КАТЕГОРИИ СЕРВЕРА -->
         <div id="screen-categories" class="screen hidden">
             <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
             <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
             <div id="categories-list" class="sections-list"></div>
         </div>
 
+        <!-- ОРГАНИЗАЦИИ (ФРАКЦИИ) -->
         <div id="screen-factions" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
@@ -68,6 +71,7 @@
             <div id="factions-list" class="sections-list"></div>
         </div>
 
+        <!-- ТЕМЫ ВНУТРИ ФРАКЦИИ -->
         <div id="screen-topics" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-factions">← Назад</button>
@@ -85,6 +89,7 @@
             <div id="topics-list" class="sections-list"></div>
         </div>
 
+        <!-- ПРОСМОТР И РЕДАКТИРОВАНИЕ ТЕМЫ -->
         <div id="screen-view-topic" class="screen hidden">
             <button class="btn-secondary" onclick="backFromTopicView()" style="margin-bottom: 20px;">← Назад к списку тем</button>
             
@@ -93,6 +98,7 @@
                 
                 <div id="topic-view-content" class="topic-content-display">Текст публикации загружается...</div>
                 
+                <!-- Блок визуального редактора текста -->
                 <div id="topic-admin-editor-block" class="hidden" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
                     <button id="btn-toggle-editor" class="btn-secondary" onclick="toggleTopicEditor()" style="margin-bottom: 15px;">✍️ Редактировать контент</button>
                     
@@ -140,7 +146,8 @@
                             <button type="button" onclick="formatText('removeFormat')" style="color: #ff4b4b;">🧹 Сброс</button>
                         </div>
 
-                        <div id="editor-rich-content" contenteditable="true" placeholder="Начните писать красивый текст фракции здесь..."></div>
+                        <!-- Основной контейнер редактора, который привязан в app.js -->
+                        <div id="editor-rich-content" contenteditable="true" style="min-height: 200px; background: #12171f; border: 1px solid #334155; padding: 15px; border-radius: 6px; color: #fff;"></div>
                         
                         <button class="btn-primary" onclick="saveTopicContent()" style="background: #10b981; max-width: 200px; margin-top: 10px;">💾 Сохранить изменения</button>
                     </div>
@@ -148,6 +155,7 @@
             </div>
         </div>
 
+        <!-- РЕГИСТРАЦИЯ -->
         <div id="screen-register" class="screen hidden" style="padding: 20px; max-width: 400px; margin: 0 auto;">
             <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="color: #fff;">Регистрация</h2>
@@ -164,16 +172,17 @@
                 <input type="password" id="reg-password" placeholder="Пароль (минимум 6 символов)" 
                        style="padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff;">
                 
+                <button onclick="registerUser()" class="btn-primary" style="margin-top: 10px; width: 100%;">Зарегистрироваться</button>
                 <button onclick="showScreen('screen-login')" class="btn-secondary" 
                         style="padding: 12px; cursor: pointer; background: transparent; color: #8a99ad; border: 1px solid #334155; border-radius: 6px;">
                     Уже есть аккаунт? Войти
                 </button>
-                <button onclick="registerUser()" class="btn-primary" style="margin-top: 10px; width: 100%;">Зарегистрироваться</button>
             </div>
         </div>
 
+        <!-- АВТОРИЗАЦИЯ -->
         <div id="screen-login" class="screen hidden">
-            <h2 style="text-align: center; margin-bottom: 25px;">Вход на forum</h2>
+            <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
             <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
                 <input type="email" id="login-email" placeholder="Электронная почта" style="width: 100%; margin: 0;">
                 <input type="password" id="login-password" placeholder="Пароль" style="width: 100%; margin: 0;">
@@ -195,6 +204,7 @@
             </div>
         </div>
 
+        <!-- НАСТРОЙКИ СВОЕГО ПРОФИЛЯ -->
         <div id="screen-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="profile-banner-preview">
                 <div class="profile-preview-avatar-container">
@@ -208,13 +218,15 @@
                 
                 <div class="upload-grid">
                     <div>
-                        <label class="input-label">Фото профиля</label>
+                        <label class="input-label">Фото профиля (до 2МБ)</label>
                         <button class="btn-upload-custom" onclick="document.getElementById('file-avatar').click()">📁 Выбрать аватар</button>
-                        <input type="file" id="file-avatar" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-avatar-preview')">
+                        <!-- Изменен вызов функции на соответствие логике app.js -->
+                        <input type="file" id="file-avatar" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-avatar-preview', false)">
                     </div>
                     <div>
-                        <label class="input-label">Обложка (Баннер)</label>
+                        <label class="input-label">Обложка (Баннер) (до 2МБ)</label>
                         <button class="btn-upload-custom" onclick="document.getElementById('file-banner').click()">🖼️ Выбрать баннер</button>
+                        <!-- Изменен вызов функции на соответствие логике app.js -->
                         <input type="file" id="file-banner" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-banner-preview', true)">
                     </div>
                 </div>
@@ -226,6 +238,7 @@
             </div>
         </div>
 
+        <!-- ПУБЛИЧНЫЙ ПРОФИЛЬ И СТЕНА ИГРОКА -->
         <div id="screen-public-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="public-banner">
                 <div class="profile-preview-avatar-container">
@@ -238,7 +251,7 @@
                 <div id="public-role" style="font-size: 14px; color: #3b82f6; font-weight: 600; margin-bottom: 15px;">Роль</div>
                 
                 <button id="btn-profile-like" class="btn-primary" onclick="toggleProfileLike()" style="background: #e11d48; box-shadow: 0 4px 10px rgba(225,29,72,0.3);">
-                    ❤️ Лайков: <span id="public-likes-count">0</span>
+                    ❤️ Лайкнуть профиль
                 </button>
                 <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-left: 10px;">На главную</button>
             </div>
@@ -247,14 +260,15 @@
                 <h3 class="page-title" style="font-size: 16px;">Стена пользователя</h3>
                 
                 <div id="profile-comment-form" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <input type="text" id="new-profile-comment" placeholder="Написать что-нибудь на стене..." style="flex-grow: 1;">
-                    <button class="btn-primary" onclick="sendProfileComment()">Отправить</button>
+                    <textarea id="new-profile-comment" placeholder="Написать что-нибудь на стене..." rows="2" style="flex-grow: 1; background: #12171f; color:#fff; border: 1px solid #334155; border-radius:6px; padding:10px; resize:none;"></textarea>
+                    <button class="btn-primary" onclick="sendProfileComment()" style="height: fit-content; align-self: flex-end;">Отправить</button>
                 </div>
 
                 <div id="profile-comments-list" class="sections-list" style="gap: 10px;"></div>
             </div>
         </div>
 
+        <!-- КОРРЕКТНАЯ АДМИН-ПАНЕЛЬ С ФИЛЬТРАМИ И РОЛЯМИ -->
         <div id="screen-admin" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 class="page-title" style="margin: 0;">👑 Панель управления проектом</h2>
@@ -265,6 +279,7 @@
                 <input type="text" id="admin-search-user" placeholder="🔍 Поиск пользователя по никнейму..." oninput="filterAdminUsers()" style="width: 100%; max-width: 400px;">
             </div>
 
+            <!-- Сюда app.js будет рендерить карточки пользователей со всеми выпадающими списками -->
             <div id="admin-users-list" class="admin-list-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
         </div>
 
