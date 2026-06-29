@@ -176,30 +176,51 @@ async function saveProfileSettings() {
     }
 
     if (btnSave) {
-        btnSave.innerText = "⏳ Сохранение...";
+        btnSave.innerText = "⏳ Подготовка...";
         btnSave.disabled = true;
     }
 
     try {
-        if (!auth.currentUser) return alert("Ошибка: Вы не авторизованы!");
+        if (!auth.currentUser) {
+            alert("Ошибка: Вы не авторизованы!");
+            if (btnSave) { btnSave.disabled = false; btnSave.innerText = "Сохранить изменения"; }
+            return;
+        }
 
+        const uid = auth.currentUser.uid;
         let avatarUrl = (currentUserData && currentUserData.avatar) || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
         let bannerUrl = (currentUserData && currentUserData.banner) || "";
         const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
+        // 1. ЗАГРУЗКА АВАТАРКИ (с отслеживанием ошибок)
         if (avatarFile) {
-            const avatarRef = storage.ref(`avatars/${auth.currentUser.uid}_${Date.now()}`);
-            await avatarRef.put(avatarFile);
-            avatarUrl = await avatarRef.getDownloadURL();
+            if (btnSave) btnSave.innerText = "⏳ Загрузка аватарки...";
+            try {
+                const avatarRef = storage.ref().child(`avatars/${uid}_${Date.now()}`);
+                const snapshot = await avatarRef.put(avatarFile);
+                avatarUrl = await snapshot.ref.getDownloadURL();
+            } catch (storageErr) {
+                console.error("Ошибка Storage при загрузке аватарки:", storageErr);
+                throw new Error("Не удалось загрузить аватарку в Storage. Проверьте правила Rules в Firebase Консоли.");
+            }
         }
 
+        // 2. ЗАГРУЗКА БАННЕРА (с отслеживанием ошибок)
         if (bannerFile) {
-            const bannerRef = storage.ref(`banners/${auth.currentUser.uid}_${Date.now()}`);
-            await bannerRef.put(bannerFile);
-            bannerUrl = await bannerRef.getDownloadURL();
+            if (btnSave) btnSave.innerText = "⏳ Загрузка баннера...";
+            try {
+                const bannerRef = storage.ref().child(`banners/${uid}_${Date.now()}`);
+                const snapshot = await bannerRef.put(bannerFile);
+                bannerUrl = await snapshot.ref.getDownloadURL();
+            } catch (storageErr) {
+                console.error("Ошибка Storage при загрузке баннера:", storageErr);
+                throw new Error("Не удалось загрузить баннер в Storage. Проверьте правила Rules в Firebase Консоли.");
+            }
         }
 
-        await db.ref('users/' + auth.currentUser.uid).update({
+        // 3. ОБНОВЛЕНИЕ БАЗЫ ДАННЫХ
+        if (btnSave) btnSave.innerText = "⏳ Сохранение в БД...";
+        await db.ref('users/' + uid).update({
             username: nickname, 
             avatar: avatarUrl,
             banner: bannerUrl,
@@ -210,8 +231,8 @@ async function saveProfileSettings() {
         location.reload(); 
 
     } catch (error) {
-        console.error(error);
-        alert("Произошла ошибка при сохранении: " + error.message);
+        console.error("Глобальная ошибка функции сохранения:", error);
+        alert("Ошибка при сохранении: " + error.message);
     } finally {
         if (btnSave) {
             btnSave.innerText = "Сохранить изменения";
