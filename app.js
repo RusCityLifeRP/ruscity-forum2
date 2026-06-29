@@ -489,7 +489,7 @@ function registerUser() {
     const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value.trim();
     if (!usernameInput || !email || !password) return alert("Заполните все поля!");
-    if (!usernameInput.includes("_")) return alert("Формат должен быть Nick_Name!");
+    if (!usernameInput.includes("_")) return alert("Формат должен быть Nick!");
     auth.createUserWithEmailAndPassword(email, password).then(cred => {
         return db.ref('users/' + cred.user.uid).set({
             username: usernameInput, email: email, role: "Пользователь", isLeader: false, isSubLeader: false,
