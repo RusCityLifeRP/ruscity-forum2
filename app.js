@@ -121,40 +121,28 @@ function goBackFromSection() {
     }
 }
 
-// Открытие тем в выбранном разделе
-function openSection(sectionId) {
-    currentSectionId = sectionId;
-    showScreen('screen-section');
-    document.getElementById('topic-form-block').classList.add('hidden');
+db.ref(`topics/${currentServerId}/${sectionId}`).on('value', snapshot => {
+    const topicsList = document.getElementById('topics-list');
+    topicsList.innerHTML = '';
+    const data = snapshot.val();
 
-    const btnCreate = document.getElementById('btn-create-topic');
-    
-    // ПРОВЕРКА ПРАВ: Показываем кнопку создания только если это руководство
-    if (isProjectManagement()) {
-        btnCreate.classList.remove('hidden');
-    } else {
-        btnCreate.classList.add('hidden');
+    // ПРОВЕРКА: Если данных нет совсем
+    if (!data) {
+        topicsList.innerHTML = '<p style="padding:20px; color:#a0aec0;">Тем пока нет.</p>';
+        return;
     }
 
-    db.ref(`topics/${currentServerId}/${sectionId}`).on('value', snapshot => {
-        const topicsList = document.getElementById('topics-list');
-        topicsList.innerHTML = '';
-        const data = snapshot.val();
-        if (!data) {
-            topicsList.innerHTML = '<p style="padding:20px; color:#a0aec0;">Тем пока нет.</p>';
-            return;
-        }
-        Object.keys(data).forEach(topicId => {
-            const topic = data[topicId];
-            const item = document.createElement('div');
-            item.className = 'forum-section';
-            item.onclick = () => openTopic(topicId);
-            item.innerHTML = `<h3>${topic.title}</h3><p>Автор: ${topic.authorName} | Ответов: ${topic.replyCount || 0}</p>`;
-            topicsList.appendChild(item);
-        });
+    // Если данные есть, идем дальше
+    Object.keys(data).forEach(topicId => {
+        const topic = data[topicId];
+        const item = document.createElement('div');
+        item.className = 'forum-section';
+        item.onclick = () => openTopic(topicId);
+        item.innerHTML = `<h3>${topic.title}</h3><p>Автор: ${topic.authorName} | Ответов: ${topic.replyCount || 0}</p>`;
+        topicsList.appendChild(item);
     });
+});
 }
-
 
 function showTopicForm() { 
     document.getElementById('topic-form-block').classList.toggle('hidden'); 
