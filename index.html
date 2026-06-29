@@ -37,7 +37,7 @@
 
     <main class="forum-container">
         
-        <!-- ГЛАВНЫЙ ЭКРАН -->
+        <!-- ЭКРАН 1: ГЛАВНЫЙ -->
         <div id="screen-forum" class="screen">
             <h2 class="page-title">Важная информация</h2>
             <div id="info-sections-list" class="sections-list" style="margin-bottom: 40px;"></div>
@@ -46,14 +46,14 @@
             <div id="servers-list" class="sections-list"></div>
         </div>
 
-        <!-- КАТЕГОРИИ СЕРВЕРА -->
+        <!-- ЭКРАН 2: КАТЕГОРИИ СЕРВЕРА -->
         <div id="screen-categories" class="screen hidden">
             <button class="btn-secondary" onclick="showScreen('screen-forum')" style="margin-bottom: 20px;">← К списку серверов</button>
             <h2 id="current-server-title" class="page-title">🏰 Москва</h2>
             <div id="categories-list" class="sections-list"></div>
         </div>
 
-        <!-- ОРГАНИЗАЦИИ (ФРАКЦИИ) -->
+        <!-- ЭКРАН 3: ФРАКЦИИ / ОРГАНИЗАЦИИ -->
         <div id="screen-factions" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-categories">← Назад к категориям</button>
@@ -71,7 +71,7 @@
             <div id="factions-list" class="sections-list"></div>
         </div>
 
-        <!-- ТЕМЫ ВНУТРИ ФРАКЦИИ -->
+        <!-- ЭКРАН 4: СПИСОК ТЕМ -->
         <div id="screen-topics" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <button class="btn-secondary" id="btn-back-to-factions">← Назад</button>
@@ -89,16 +89,33 @@
             <div id="topics-list" class="sections-list"></div>
         </div>
 
-        <!-- ПРОСМОТР И РЕДАКТИРОВАНИЕ ТЕМЫ -->
+        <!-- ЭКРАН 5: ПРОСМОТР ТЕМЫ + ПОДТЕМЫ -->
         <div id="screen-view-topic" class="screen hidden">
-            <button class="btn-secondary" onclick="backFromTopicView()" style="margin-bottom: 20px;">← Назад к списку тем</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <button class="btn-secondary" onclick="backFromTopicView()">← Назад к списку тем</button>
+                <button id="btn-show-create-subtopic" class="btn-primary hidden" onclick="toggleSubTopicForm()">+ Создать подтему</button>
+            </div>
             
             <div class="topic-view-container">
                 <h2 id="topic-view-title" class="page-title">Название темы</h2>
                 
-                <div id="topic-view-content" class="topic-content-display">Текст публикации загружается...</div>
+                <!-- Описание или текст текущей темы -->
+                <div id="topic-view-content" class="topic-content-display" style="margin-bottom: 20px;">Текст публикации загружается...</div>
                 
-                <!-- Блок визуального редактора текста -->
+                <!-- Блок вложенных подтем (если они есть в этой теме) -->
+                <div id="subtopics-block" class="hidden" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <h3 style="color: #fff; margin-bottom: 15px; font-size: 16px;">📁 Вложенные подразделы / подтемы:</h3>
+                    <div id="subtopics-list" class="sections-list"></div>
+                </div>
+
+                <!-- Форма создания подтемы -->
+                <div id="create-subtopic-form" class="form-group hidden" style="background: #232936; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid rgba(59,130,246,0.2);">
+                    <h3>Создание новой подтемы</h3>
+                    <input type="text" id="new-subtopic-name" placeholder="Название подтемы (например: Устав фракции)">
+                    <button class="btn-primary" onclick="createNewSubTopic()">Опубликовать подтему</button>
+                </div>
+                
+                <!-- Визуальный редактор текста (BB-коды) -->
                 <div id="topic-admin-editor-block" class="hidden" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
                     <button id="btn-toggle-editor" class="btn-secondary" onclick="toggleTopicEditor()" style="margin-bottom: 15px;">✍️ Редактировать контент</button>
                     
@@ -146,7 +163,6 @@
                             <button type="button" onclick="formatText('removeFormat')" style="color: #ff4b4b;">🧹 Сброс</button>
                         </div>
 
-                        <!-- Основной контейнер редактора, который привязан в app.js -->
                         <div id="editor-rich-content" contenteditable="true" style="min-height: 200px; background: #12171f; border: 1px solid #334155; padding: 15px; border-radius: 6px; color: #fff;"></div>
                         
                         <button class="btn-primary" onclick="saveTopicContent()" style="background: #10b981; max-width: 200px; margin-top: 10px;">💾 Сохранить изменения</button>
@@ -155,7 +171,7 @@
             </div>
         </div>
 
-        <!-- РЕГИСТРАЦИЯ -->
+        <!-- ЭКРАН 6: РЕГИСТРАЦИЯ -->
         <div id="screen-register" class="screen hidden" style="padding: 20px; max-width: 400px; margin: 0 auto;">
             <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="color: #fff;">Регистрация</h2>
@@ -180,7 +196,7 @@
             </div>
         </div>
 
-        <!-- АВТОРИЗАЦИЯ -->
+        <!-- ЭКРАН 7: АВТОРИЗАЦИЯ -->
         <div id="screen-login" class="screen hidden">
             <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
             <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
@@ -195,16 +211,16 @@
 
             <div id="reset-password-block" class="form-group hidden" style="max-width: 380px; margin: 20px auto 0; padding: 15px; background: #1e2530; border-radius: 8px; border: 1px solid rgba(59,130,246,0.4); box-shadow: 0 0 15px rgba(59,130,246,0.15);">
                 <h3 style="font-size: 16px; margin-bottom: 10px; text-align: center;">Восстановление доступа</h3>
-                <p style="font-size: 13px; color: #a0aab8; margin-bottom: 10px; text-align: center;">На вашу почту придет официальная ссылка для изменения пароля.</p>
+                <p style="font-size: 13px; color: #a0aab8; margin-bottom: 10px; text-align: center;">На вашу почту придет ссылка для изменения пароля.</p>
                 <input type="email" id="reset-email" placeholder="Введите ваш Email" style="width: 100%; margin-bottom: 10px;">
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn-primary" onclick="sendPasswordReset()" style="width: 50%; background: #10b981; box-shadow: 0 4px 10px rgba(16,185,129,0.2);">Отправить</button>
+                    <button class="btn-primary" onclick="sendPasswordReset()" style="width: 50%; background: #10b981;">Отправить</button>
                     <button class="btn-secondary" onclick="toggleResetForm(false)" style="width: 50%;">Отмена</button>
                 </div>
             </div>
         </div>
 
-        <!-- НАСТРОЙКИ СВОЕГО ПРОФИЛЯ -->
+        <!-- ЭКРАН 8: НАСТРОЙКИ СВОЕГО ПРОФИЛЯ -->
         <div id="screen-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="profile-banner-preview">
                 <div class="profile-preview-avatar-container">
@@ -218,15 +234,13 @@
                 
                 <div class="upload-grid">
                     <div>
-                        <label class="input-label">Фото профиля (до 2МБ)</label>
+                        <label class="input-label">Фото профиля</label>
                         <button class="btn-upload-custom" onclick="document.getElementById('file-avatar').click()">📁 Выбрать аватар</button>
-                        <!-- Изменен вызов функции на соответствие логике app.js -->
                         <input type="file" id="file-avatar" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-avatar-preview', false)">
                     </div>
                     <div>
-                        <label class="input-label">Обложка (Баннер) (до 2МБ)</label>
+                        <label class="input-label">Обложка (Баннер)</label>
                         <button class="btn-upload-custom" onclick="document.getElementById('file-banner').click()">🖼️ Выбрать баннер</button>
-                        <!-- Изменен вызов функции на соответствие логике app.js -->
                         <input type="file" id="file-banner" accept="image/*" class="hidden" onchange="previewImage(this, 'profile-banner-preview', true)">
                     </div>
                 </div>
@@ -238,7 +252,7 @@
             </div>
         </div>
 
-        <!-- ПУБЛИЧНЫЙ ПРОФИЛЬ И СТЕНА ИГРОКА -->
+        <!-- ЭКРАН 9: ПУБЛИЧНЫЙ ПРОФИЛЬ + СТЕНА -->
         <div id="screen-public-profile" class="screen hidden profile-editor-card">
             <div class="profile-preview-banner" id="public-banner">
                 <div class="profile-preview-avatar-container">
@@ -268,7 +282,7 @@
             </div>
         </div>
 
-        <!-- КОРРЕКТНАЯ АДМИН-ПАНЕЛЬ С ФИЛЬТРАМИ И РОЛЯМИ -->
+        <!-- ЭКРАН 10: АДМИН-ПАНЕЛЬ -->
         <div id="screen-admin" class="screen hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 class="page-title" style="margin: 0;">👑 Панель управления проектом</h2>
@@ -279,7 +293,6 @@
                 <input type="text" id="admin-search-user" placeholder="🔍 Поиск пользователя по никнейму..." oninput="filterAdminUsers()" style="width: 100%; max-width: 400px;">
             </div>
 
-            <!-- Сюда app.js будет рендерить карточки пользователей со всеми выпадающими списками -->
             <div id="admin-users-list" class="admin-list-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
         </div>
 
