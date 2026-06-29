@@ -96,15 +96,59 @@
                     <button id="btn-toggle-editor" class="btn-secondary" onclick="toggleTopicEditor()" style="margin-bottom: 15px;">✍️ Редактировать контент</button>
                     
                     <div id="topic-editor-inputs" class="hidden" style="display: flex; flex-direction: column; gap: 10px;">
-                        <textarea id="textarea-topic-content" rows="12" placeholder="Введите текст темы здесь... Использовать Enter для переноса строк." style="width: 100%; background: #12171f; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 6px; resize: vertical; font-size: 14px; line-height: 1.5;"></textarea>
-                        <button class="btn-primary" onclick="saveTopicContent()" style="background: #10b981; max-width: 200px;">💾 Сохранить изменения</button>
+                        <div class="editor-toolbar">
+                            <select onchange="formatText('fontName', this.value)">
+                                <option value="Arial">Arial</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Impact">Impact</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Segoe UI" selected>Segoe UI</option>
+                            </select>
+
+                            <select onchange="formatText('fontSize', this.value)">
+                                <option value="1">Очень маленький</option>
+                                <option value="2">Маленький</option>
+                                <option value="3" selected>Обычный</option>
+                                <option value="4">Средний</option>
+                                <option value="5">Большой</option>
+                                <option value="6">Очень большой</option>
+                                <option value="7">Максимальный</option>
+                            </select>
+
+                            <button type="button" onclick="formatText('bold')" title="Жирный"><b>B</b></button>
+                            <button type="button" onclick="formatText('italic')" title="Курсив"><i>I</i></button>
+                            <button type="button" onclick="formatText('underline')" title="Подчеркнутый"><u>U</u></button>
+                            <button type="button" onclick="formatText('strikeThrough')" title="Зачеркнутый"><s>S</s></button>
+
+                            <button type="button" onclick="formatText('justifyLeft')">⬅️</button>
+                            <button type="button" onclick="formatText('justifyCenter')">🔼</button>
+                            <button type="button" onclick="formatText('justifyRight')">➡️</button>
+
+                            <div class="color-picker-wrapper">
+                                <span style="font-size: 11px;">Цвет:</span>
+                                <input type="color" onchange="formatText('foreColor', this.value)" value="#ffffff">
+                            </div>
+                            <div class="color-picker-wrapper">
+                                <span style="font-size: 11px;">Фон:</span>
+                                <input type="color" onchange="formatText('hiliteColor', this.value)" value="#12171f">
+                            </div>
+
+                            <button type="button" onclick="formatText('insertUnorderedList')">• Список</button>
+                            <button type="button" onclick="formatText('insertOrderedList')">1. Список</button>
+                            <button type="button" onclick="formatText('removeFormat')" style="color: #ff4b4b;">🧹 Сброс</button>
+                        </div>
+
+                        <div id="editor-rich-content" contenteditable="true" placeholder="Начните писать красивый текст фракции здесь..."></div>
+                        
+                        <button class="btn-primary" onclick="saveTopicContent()" style="background: #10b981; max-width: 200px; margin-top: 10px;">💾 Сохранить изменения</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="screen-login" class="screen hidden">
-            <h2 style="text-align: center; margin-bottom: 25px;">Вход на форум</h2>
+            <h2 style="text-align: center; margin-bottom: 25px;">Вход на forum</h2>
             <div class="form-group" style="max-width: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
                 <input type="email" id="login-email" placeholder="Электронная почта" style="width: 100%; margin: 0;">
                 <input type="password" id="login-password" placeholder="Пароль" style="width: 100%; margin: 0;">
