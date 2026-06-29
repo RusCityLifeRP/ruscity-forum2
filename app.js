@@ -118,7 +118,7 @@ function loadServers() {
     if (infoDiv) {
         const infoCats = [
             { id: "rules", name: "📜 Правила проекта", desc: "Общие правила сервера, регламенты и положения для игроков" },
-            { id: "laws", name: "⚖️ Законодательство", desc: "Конституция, кодексы, законы и нормативно-правовые акты" }
+            { id: "laws", name: "⚖️ Законодательство", desc: "Конституция, кодексы, законы и нормативно-правочные акты" }
         ];
         infoDiv.innerHTML = "";
         infoCats.forEach(c => {
@@ -181,7 +181,7 @@ function openCategoryFactions(catId, catName) {
     selectedCategoryId = catId;
     isGlobalInfoZone = false;
     showScreen('screen-factions');
-    document.getElementById('create-faction-form').classList.add('hidden');
+    if(document.getElementById('create-faction-form')) document.getElementById('create-faction-form').classList.add('hidden');
     if(document.getElementById('current-category-title')) document.getElementById('current-category-title').innerText = catName;
     if(document.getElementById('btn-back-to-categories')) document.getElementById('btn-back-to-categories').onclick = () => showScreen('screen-categories');
 
@@ -343,6 +343,45 @@ function loginUser() {
         .catch(err => { alert("Ошибка авторизации: " + err.message); });
 }
 
+// СБРОС ПАРОЛЯ И КИК С СЕССИИ
+function toggleResetForm(show) {
+    const block = document.getElementById('reset-password-block');
+    if (!block) return;
+    if (show) block.classList.remove('hidden');
+    else block.classList.add('hidden');
+}
+
+function sendPasswordReset() {
+    const email = document.getElementById('reset-email').value.trim();
+    if (!email) {
+        alert("Пожалуйста, введите Email для восстановления!");
+        return;
+    }
+
+    auth.sendPasswordResetEmail(email)
+        .then(() => {
+            alert(`Инструкция успешно отправлена на почту: ${email}\nПосле изменения пароля зайдите в аккаунт заново.`);
+            document.getElementById('reset-email').value = "";
+            toggleResetForm(false);
+
+            if (auth.currentUser) {
+                auth.signOut().then(() => { location.reload(); });
+            } else {
+                showScreen('screen-login');
+            }
+        })
+        .catch(err => {
+            if (err.code === "auth/user-not-found") {
+                alert("Пользователь с такой электронной почтой не найден!");
+            } else if (err.code === "auth/invalid-email") {
+                alert("Некорректный формат email адреса!");
+            } else {
+                alert("Ошибка восстановления: " + err.message);
+            }
+        });
+}
+
 function logout() { auth.signOut().then(() => { location.reload(); }); }
 
 document.addEventListener("DOMContentLoaded", () => { loadServers(); });
+
