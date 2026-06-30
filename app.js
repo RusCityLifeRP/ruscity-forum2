@@ -45,11 +45,14 @@ const LEADER_FACTIONS_LIST = [
 ];
 
 const FORUM_ROLES_GROUPS = {
-    "Высшая Администрация": ["Разработчик", "Основатель", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора"],
+    "Высшая Администрация": ["Руководство проекта", "Разработчик", "Основатель", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора"],
     "Управляющая Администрация": ["Куратор Форума", "Куратор Сервера", "Гл. Куратор за Гос. организациями", "Гл. Куратор за ОПГ"],
     "Игровая Администрация": ["Старший Администратор", "Администратор", "Младший Администратор", "Модератор", "Хелпер"],
     "Обычные роли": ["Пользователь", "Проверенный пользователь", "Премиум", "Заблокирован"]
 };
+
+// Список ролей, у которых есть доступ абсолютно ко ВСЕМУ и к админ-панели
+const ALL_ADMIN_ROLES = ["Руководство проекта", "Разработчик", "Основатель", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора", "Куратор Форума"];
 
 // Глобальное состояние
 let currentServerId = '';
@@ -86,9 +89,10 @@ function hasEditAccess() {
     if (!auth.currentUser || !allUsersDataLocal[auth.currentUser.uid]) return false;
     const currentUser = allUsersDataLocal[auth.currentUser.uid];
     
-    const adminRoles = ["Разработчик", "Основатель", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора", "Куратор Форума"];
-    if (adminRoles.includes(currentUser.role)) return true;
+    // Администрация имеет доступ
+    if (ALL_ADMIN_ROLES.includes(currentUser.role)) return true;
 
+    // Лидеры / замы имеют доступ к своей фракции
     if (currentUser.isLeader || currentUser.isSubLeader) {
         if (currentUser.leaderServer === currentServerId && currentUser.leaderFaction === currentFactionId) {
             return true;
@@ -149,7 +153,7 @@ function logout() {
 // 5. РАБОТА С ФОРУМОМ (СЕРВЕРА, ТЕМЫ)
 // ==========================================
 function loadForumData() {
-    // Сервера
+    // Рендер серверов
     const serversList = document.getElementById('servers-list');
     if(serversList) {
         serversList.innerHTML = '';
@@ -162,7 +166,7 @@ function loadForumData() {
         });
     }
 
-    // Важная информация
+    // Исправленный рендер Важной информации (фикс undefined)
     db.ref('info_sections').on('value', snap => {
         const infoList = document.getElementById('info-sections-list');
         if(!infoList) return;
@@ -175,13 +179,15 @@ function loadForumData() {
         for(let id in data) {
             const card = document.createElement('div');
             card.className = 'forum-section-card item-clickable';
-            card.innerHTML = `<div class="section-icon">📢</div><div class="section-title">${data[id].title}</div>`;
+            // Проверяем и title, и name на случай разных структур в базе
+            const displayTitle = data[id].title || data[id].name || "Без названия";
+            card.innerHTML = `<div class="section-icon">📢</div><div class="section-title">${displayTitle}</div>`;
             card.onclick = () => openTopic(id, true);
             infoList.appendChild(card);
         }
     });
 
-    // Общая статистика форума
+    // Статистика
     db.ref('users').on('value', snap => {
         const users = snap.val() || {};
         allUsersDataLocal = users;
@@ -233,11 +239,10 @@ function openFactions(catId, catName) {
 
     document.getElementById('btn-back-to-categories').onclick = () => openServerCategories(currentServerId);
 
-    // Проверка на админа для кнопки "Создать фракцию"
+    // Проверка доступа для создания разделов фракций
     if(auth.currentUser && allUsersDataLocal[auth.currentUser.uid]) {
         const role = allUsersDataLocal[auth.currentUser.uid].role;
-        const adminRoles = ["Разработчик", "Основатель", "Спец. Администратор", "Главный Администратор"];
-        if(adminRoles.includes(role)) {
+        if(ALL_ADMIN_ROLES.includes(role)) {
             document.getElementById('btn-show-create-faction').classList.remove('hidden');
         } else {
             document.getElementById('btn-show-create-faction').classList.add('hidden');
@@ -266,6 +271,7 @@ function toggleFactionForm() {
     document.getElementById('create-faction-form').classList.toggle('hidden');
 }
 
+// Позволяет админам создавать фракцию во внутренней базе под сервером
 function createNewFaction() {
     const name = document.getElementById('new-faction-name').value.trim();
     if(!name) return alert("Введите имя раздела фракции!");
@@ -283,7 +289,6 @@ function openTopicsList(factionId, factionName) {
 
     document.getElementById('btn-back-to-factions').onclick = () => openFactions(currentCategoryId, document.getElementById('current-category-title').innerText);
 
-    // Доступ к кнопке создания тем (Админы + Лидеры/Замы этой фракции)
     if (hasEditAccess()) {
         document.getElementById('btn-show-create-topic').classList.remove('hidden');
     } else {
@@ -301,7 +306,7 @@ function openTopicsList(factionId, factionName) {
         for(let tId in data) {
             const card = document.createElement('div');
             card.className = 'forum-section-card item-clickable';
-            card.innerHTML = `<div class="section-icon">📄</div><div class="section-title">${data[tId].title}</div>`;
+            card.innerHTML = `<div class="section-icon">📄</div><div class="section-title">${data[tId].title || data[tId].name}</div>`;
             card.onclick = () => openTopic(tId, false);
             topicsList.appendChild(card);
         }
@@ -318,21 +323,19 @@ function createNewTopic() {
 
     db.ref(`topics/${currentServerId}/${currentFactionId}`).push({
         title: title,
-        content: "Редактируйте текст темы через админ-панель или встроенный редактор."
+        content: "Редактируйте текст темы через встроенный редактор публикации ниже."
     }).then(() => {
         document.getElementById('new-topic-name').value = '';
         document.getElementById('create-topic-form').classList.add('hidden');
     });
 }
 
-// Просмотр темы
 function openTopic(topicId, isInfoSection = false) {
     currentTopicId = topicId;
     showScreen('screen-view-topic');
 
     const path = isInfoSection ? `info_sections/${topicId}` : `topics/${currentServerId}/${currentFactionId}/${topicId}`;
 
-    // Доступ к редактированию и удалению тем
     if(hasEditAccess()) {
         document.getElementById('topic-admin-editor-block').classList.remove('hidden');
         document.getElementById('btn-delete-current-topic').classList.remove('hidden');
@@ -346,12 +349,11 @@ function openTopic(topicId, isInfoSection = false) {
     db.ref(path).on('value', snap => {
         const data = snap.val();
         if(!data) return;
-        document.getElementById('topic-view-title').innerText = data.title;
-        document.getElementById('topic-view-content').innerHTML = data.content || "Пусто";
+        document.getElementById('topic-view-title').innerText = data.title || data.name || "Тема";
+        document.getElementById('topic-view-content').innerHTML = data.content || "Текст отсутствует.";
         document.getElementById('editor-rich-content').innerHTML = data.content || "";
     });
 
-    // Загрузка подтем
     loadSubTopics();
 }
 
@@ -369,6 +371,7 @@ function toggleTopicEditor() {
     document.getElementById('topic-editor-inputs').classList.toggle('hidden');
 }
 
+// Форматирование для встроенного текстового редактора
 function formatText(cmd, val = null) {
     document.execCommand(cmd, false, val);
 }
@@ -393,7 +396,6 @@ function deleteCurrentTopic() {
     });
 }
 
-// Вложенные подтемы
 function loadSubTopics() {
     db.ref(`subtopics/${currentTopicId}`).on('value', snap => {
         const block = document.getElementById('subtopics-block');
@@ -409,7 +411,7 @@ function loadSubTopics() {
             const card = document.createElement('div');
             card.className = 'forum-section-card item-clickable';
             card.style.padding = '10px 15px';
-            card.innerHTML = `<div class="section-icon" style="font-size:16px; min-width:30px; height:30px;">📂</div><div class="section-title" style="font-size:14px;">${data[id].title}</div>`;
+            card.innerHTML = `<div class="section-icon" style="font-size:16px; min-width:30px; height:30px;">📂</div><div class="section-title" style="font-size:14px;">${data[id].title || data[id].name}</div>`;
             card.onclick = () => {
                 currentFactionId = ''; 
                 openTopic(id, false);
@@ -479,7 +481,12 @@ function openPublicProfile(uid) {
             roleBadge.style.color = '#60a5fa';
         } else {
             roleBadge.innerHTML = u.role || 'Пользователь';
-            roleBadge.style.color = '#3b82f6';
+            // Делаем красивую подсветку для руководства проекта
+            if(u.role === "Руководство проекта") {
+                roleBadge.style.color = '#60a5fa';
+            } else {
+                roleBadge.style.color = '#3b82f6';
+            }
         }
     });
 
@@ -543,7 +550,6 @@ function loadProfileComments(uid) {
     });
 }
 
-// Редактирование своего профиля
 function openProfileSettings() {
     if(!auth.currentUser) return;
     showScreen('screen-profile-edit');
@@ -620,6 +626,8 @@ function renderAdminUsersList(usersData) {
             const serverName = SERVERS_LIST_CONFIG[u.leaderServer] || u.leaderServer;
             forumRoleBadge = `<b style="color: #60a5fa;">📋 Зам. Лидера ${u.leaderFaction} (${serverName})</b>`;
             currentStatusText = `<span style="color: #60a5fa; font-weight: bold;">Управление фракцией активно</span>`;
+        } else if (u.role === "Руководство проекта") {
+            forumRoleBadge = `<b style="color: #60a5fa;">🛡️ Руководство проекта</b>`;
         }
         
         card.innerHTML = `
@@ -725,6 +733,7 @@ function toggleUserBan(uid, currentBanStatus) {
     db.ref(`users/${uid}/isBanned`).set(!currentBanStatus);
 }
 
+// Фильтр поиска по никнейму
 function filterAdminUsers() {
     renderAdminUsersList(allUsersDataLocal);
 }
@@ -755,8 +764,8 @@ auth.onAuthStateChanged((user) => {
                 document.getElementById('header-username').innerText = data.username || "Без никнейма";
                 document.getElementById('header-avatar').src = data.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
                 
-                const adminRoles = ["Разработчик", "Основатель", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора", "Куратор Форума"];
-                if (adminRoles.includes(data.role)) {
+                // Проверяем роль на доступ к кнопке "Админ-центр"
+                if (ALL_ADMIN_ROLES.includes(data.role)) {
                     document.getElementById('btn-admin-panel').classList.remove('hidden');
                     document.getElementById('btn-profile-edit').classList.remove('hidden');
                 } else {
@@ -778,5 +787,5 @@ window.addEventListener('beforeunload', () => {
     updateOnlineStatus(false);
 });
 
-// Запуск при загрузке страницы
+// Первичный запуск функций
 loadForumData();
