@@ -105,9 +105,21 @@
         .profile-info-box { background: var(--bg-card); padding: 20px; border-radius: 0 0 8px 8px; display: flex; align-items: center; gap: 20px; border: 1px solid var(--border-color); border-top: none; }
         .profile-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid var(--bg-card); margin-top: -50px; background: #111827; }
         
+        /* КРАСИВАЯ ПУЛЬСИРУЮЩАЯ АНИМАЦИЯ ОНЛАЙНА */
         .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .status-online { background-color: var(--success-color); box-shadow: 0 0 8px var(--success-color); }
-        .status-offline { background-color: var(--danger-color); }
+        .status-online { 
+            background-color: var(--success-color); 
+            box-shadow: 0 0 8px var(--success-color);
+            animation: pulse-online 2s infinite;
+        }
+        .status-offline { background-color: var(--danger-color); box-shadow: 0 0 5px var(--danger-color); }
+        
+        @keyframes pulse-online {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
         .user-badge { display: flex; align-items: center; gap: 8px; background: #111827; padding: 6px 12px; border-radius: 20px; }
         .user-badge img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
         
@@ -119,46 +131,13 @@
         .editor-tools { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
         .editor-tools button { padding: 5px 10px; font-size: 12px; }
         .empty-notify { color: var(--text-muted); font-style: italic; text-align: center; width: 100%; }
-
-        /* НОВЫЕ СТИЛИ ДЛЯ АДМИН-ПАНЕЛИ И СЕЛЕКТОРОВ РОЛЕЙ */
-        .admin-user-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            transition: border-color 0.2s;
-        }
-        @media(min-width: 768px) {
-            .admin-user-card { flex-direction: row; align-items: center; justify-content: space-between; }
-        }
-        .admin-user-card:hover { border-color: #4a5568; }
-        .admin-user-info { display: flex; align-items: center; gap: 15px; }
-        .admin-user-info img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #111827; }
-        .role-selectors-group { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
-        .select-wrapper { display: flex; flex-direction: column; gap: 5px; }
-        .select-wrapper label { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .admin-select {
-            background: #111827 !important;
-            color: white !important;
-            border: 1px solid var(--border-color) !important;
-            padding: 8px 12px !important;
-            border-radius: 6px !important;
-            cursor: pointer;
-            min-width: 190px;
-            font-weight: 500;
-            margin: 0 !important;
-        }
-        .admin-select:focus { border-color: var(--primary-color) !important; outline: none; }
     </style>
 </head>
 <body>
     <header>
-        <div class="logo" onclick="showScreen('screen-forum')">RusCity<span>Life RP</span></div>
+        <div class="logo" onclick="backToHome()">RusCity<span>Life RP</span></div>
         <div class="nav-buttons">
-            <button class="btn-secondary" onclick="showScreen('screen-forum')">🏠 Главная</button>
+            <button class="btn-secondary" onclick="backToHome()">🏠 Главная</button>
             <button id="btn-admin-panel" class="btn-primary hidden" onclick="openAdminPanel()">⚙️ Админ-центр</button>
             
             <div id="auth-buttons" style="display: flex; gap: 10px;">
@@ -173,7 +152,6 @@
             </div>
         </div>
     </header>
-
     <div class="container">
         <div id="screen-login" class="screen form-block hidden">
             <h2>Авторизация на форуме</h2>
@@ -255,16 +233,19 @@
                 </div>
             </div>
             <h2 id="topic-view-title">Тема</h2>
+            
             <div id="subtopics-block" class="hidden" style="margin-bottom: 25px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 6px;">
                 <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">📂 Вложенные разделы / подтемы:</h4>
                 <div id="subtopics-list"></div>
             </div>
             <div id="topic-view-content" style="background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.6; min-height: 150px; overflow-x: auto;">Загрузка содержимого...</div>
+            
             <button id="btn-show-create-subtopic" class="btn-secondary hidden" style="margin-top: 15px;" onclick="toggleSubTopicForm()">➕ Создать вложенную подтему</button>
             <div id="create-subtopic-form" class="form-block hidden" style="margin-top: 10px;">
                 <input type="text" id="new-subtopic-name" placeholder="Название подтемы">
                 <button class="btn-primary" onclick="createNewSubTopic()">Добавить подтему</button>
             </div>
+            
             <div id="topic-editor-inputs" class="form-block hidden" style="margin-top: 25px;">
                 <h3>Редактор публикации</h3>
                 <div class="editor-tools">
@@ -275,7 +256,7 @@
                     <button type="button" onclick="formatText('justifyLeft')">⬅️</button>
                     <button type="button" onclick="formatText('justifyCenter')">⏹️</button>
                     <button type="button" onclick="formatText('justifyRight')">➡️</button>
-                    <button type="button" onclick="formatText('foreColor', prompt('Введите HEX или название цвета:'))">🎨 Цвет</button>
+                    <button type="button" onclick="formatText('foreColor', prompt('Введите HEX или название цвета (например red или #ffcc00):'))">🎨 Цвет</button>
                     <button type="button" onclick="formatText('fontSize', prompt('Размер шрифта от 1 до 7:'))">📏 Размер</button>
                 </div>
                 <div id="editor-rich-content" class="rich-editor" contenteditable="true"></div>
@@ -291,8 +272,10 @@
             <textarea id="edit-bio" rows="3" placeholder="Расскажите о себе на проекте..."></textarea>
             <label style="display:block; margin-bottom:5px; color: var(--text-muted)">Загрузить новую аватарку:</label>
             <input type="file" id="file-avatar-input" accept="image/*">
+            
             <label style="display:block; margin-bottom:5px; color: var(--text-muted)">Загрузить новый баннер профиля:</label>
             <input type="file" id="file-banner-input" accept="image/*">
+            
             <div style="display:flex; gap:10px; margin-top:15px;">
                 <button id="btn-save-profile" class="btn-primary" onclick="saveProfileSettings()">💾 Сохранить изменения</button>
                 <button class="btn-secondary" onclick="showScreen('screen-forum')">Отмена</button>
@@ -326,14 +309,13 @@
         </div>
 
         <div id="screen-admin" class="screen hidden">
-            <h2>⚙️ Управление правами и лидерами форума</h2>
+            <h2>Управление правами пользователей форума</h2>
             <div class="form-block" style="margin-bottom: 25px;">
                 <input type="text" id="admin-search-user" oninput="filterAdminUsers()" placeholder="🔍 Быстрый поиск игрока по никнейму...">
             </div>
             <div id="admin-users-list" style="display: flex; flex-direction: column; gap: 16px;"></div>
         </div>
     </div>
-
-    <script src="app.js"></script>
+    <script src="app.js?v=4"></script>
 </body>
 </html>
