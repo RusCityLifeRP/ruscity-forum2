@@ -44,15 +44,16 @@ const LEADER_FACTIONS_LIST = [
     "ОПГ Лыткаринское"
 ];
 
+// Списки ролей без Основателя, Разработчика и Куратора Сервера
 const FORUM_ROLES_GROUPS = {
-    "Высшая Администрация": ["Руководство проекта", "Разработчик", "Основатель", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора"],
-    "Управляющая Администрация": ["Куратор Форума", "Куратор Сервера", "Гл. Куратор за Гос. организациями", "Гл. Куратор за ОПГ"],
+    "Высшая Администрация": ["Руководство проекта", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора"],
+    "Управляющая Администрация": ["Куратор Форума", "Гл. Куратор за Гос. организациями", "Гл. Куратор за ОПГ"],
     "Игровая Администрация": ["Старший Администратор", "Администратор", "Младший Администратор", "Модератор", "Хелпер"],
     "Обычные роли": ["Пользователь", "Проверенный пользователь", "Премиум", "Заблокирован"]
 };
 
-// Список ролей, у которых есть доступ абсолютно ко ВСЕМУ и к админ-панели
-const ALL_ADMIN_ROLES = ["Руководство проекта", "Разработчик", "Основатель", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора", "Куратор Форума"];
+// Полный список ролей с доступом к Админ-центру и управлению фракциями
+const ALL_ADMIN_ROLES = ["Руководство проекта", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора", "Куратор Форума"];
 
 // Глобальное состояние
 let currentServerId = '';
@@ -166,7 +167,7 @@ function loadForumData() {
         });
     }
 
-    // Исправленный рендер Важной информации (фикс undefined)
+    // Рендер Важной информации
     db.ref('info_sections').on('value', snap => {
         const infoList = document.getElementById('info-sections-list');
         if(!infoList) return;
@@ -179,7 +180,6 @@ function loadForumData() {
         for(let id in data) {
             const card = document.createElement('div');
             card.className = 'forum-section-card item-clickable';
-            // Проверяем и title, и name на случай разных структур в базе
             const displayTitle = data[id].title || data[id].name || "Без названия";
             card.innerHTML = `<div class="section-icon">📢</div><div class="section-title">${displayTitle}</div>`;
             card.onclick = () => openTopic(id, true);
@@ -239,18 +239,24 @@ function openFactions(catId, catName) {
 
     document.getElementById('btn-back-to-categories').onclick = () => openServerCategories(currentServerId);
 
-    // Проверка доступа для создания разделов фракций
-    if(auth.currentUser && allUsersDataLocal[auth.currentUser.uid]) {
-        const role = allUsersDataLocal[auth.currentUser.uid].role;
-        if(ALL_ADMIN_ROLES.includes(role)) {
-            document.getElementById('btn-show-create-faction').classList.remove('hidden');
+    // Проверка доступа для кнопки создания разделов фракций
+    const createFactionBtn = document.getElementById('btn-show-create-faction');
+    if (createFactionBtn) {
+        if(auth.currentUser && allUsersDataLocal[auth.currentUser.uid]) {
+            const role = allUsersDataLocal[auth.currentUser.uid].role;
+            if(ALL_ADMIN_ROLES.includes(role)) {
+                createFactionBtn.classList.remove('hidden');
+            } else {
+                createFactionBtn.classList.add('hidden');
+            }
         } else {
-            document.getElementById('btn-show-create-faction').classList.add('hidden');
+            createFactionBtn.classList.add('hidden');
         }
     }
 
     db.ref(`factions/${currentServerId}/${currentCategoryId}`).on('value', snap => {
         const facList = document.getElementById('factions-list');
+        if(!facList) return;
         facList.innerHTML = '';
         const data = snap.val();
         if(!data) {
@@ -271,7 +277,6 @@ function toggleFactionForm() {
     document.getElementById('create-faction-form').classList.toggle('hidden');
 }
 
-// Позволяет админам создавать фракцию во внутренней базе под сервером
 function createNewFaction() {
     const name = document.getElementById('new-faction-name').value.trim();
     if(!name) return alert("Введите имя раздела фракции!");
@@ -289,14 +294,18 @@ function openTopicsList(factionId, factionName) {
 
     document.getElementById('btn-back-to-factions').onclick = () => openFactions(currentCategoryId, document.getElementById('current-category-title').innerText);
 
-    if (hasEditAccess()) {
-        document.getElementById('btn-show-create-topic').classList.remove('hidden');
-    } else {
-        document.getElementById('btn-show-create-topic').classList.add('hidden');
+    const createTopicBtn = document.getElementById('btn-show-create-topic');
+    if (createTopicBtn) {
+        if (hasEditAccess()) {
+            createTopicBtn.classList.remove('hidden');
+        } else {
+            createTopicBtn.classList.add('hidden');
+        }
     }
 
     db.ref(`topics/${currentServerId}/${currentFactionId}`).on('value', snap => {
         const topicsList = document.getElementById('topics-list');
+        if(!topicsList) return;
         topicsList.innerHTML = '';
         const data = snap.val();
         if(!data) {
@@ -317,6 +326,7 @@ function toggleTopicForm() {
     document.getElementById('create-topic-form').classList.toggle('hidden');
 }
 
+// Позволяет создавать тему в текущей выбранной фракции
 function createNewTopic() {
     const title = document.getElementById('new-topic-name').value.trim();
     if(!title) return alert("Введите название темы!");
@@ -371,7 +381,6 @@ function toggleTopicEditor() {
     document.getElementById('topic-editor-inputs').classList.toggle('hidden');
 }
 
-// Форматирование для встроенного текстового редактора
 function formatText(cmd, val = null) {
     document.execCommand(cmd, false, val);
 }
@@ -400,6 +409,7 @@ function loadSubTopics() {
     db.ref(`subtopics/${currentTopicId}`).on('value', snap => {
         const block = document.getElementById('subtopics-block');
         const list = document.getElementById('subtopics-list');
+        if(!list || !block) return;
         list.innerHTML = '';
         const data = snap.val();
         if(!data) {
@@ -481,7 +491,6 @@ function openPublicProfile(uid) {
             roleBadge.style.color = '#60a5fa';
         } else {
             roleBadge.innerHTML = u.role || 'Пользователь';
-            // Делаем красивую подсветку для руководства проекта
             if(u.role === "Руководство проекта") {
                 roleBadge.style.color = '#60a5fa';
             } else {
@@ -512,7 +521,7 @@ function toggleProfileLike() {
 
 function sendProfileComment() {
     const text = document.getElementById('new-profile-comment').value.trim();
-    if(!text || !auth.currentUser) return alert("Введите текст или войдите в аккаунт!");
+    if(!text || !auth.currentUser) return alert("Введите text или войдите в аккаунт!");
 
     db.ref(`users/${auth.currentUser.uid}/username`).once('value', snap => {
         const senderName = snap.val() || "Аноним";
@@ -530,6 +539,7 @@ function sendProfileComment() {
 function loadProfileComments(uid) {
     db.ref(`profile_comments/${uid}`).on('value', snap => {
         const list = document.getElementById('profile-comments-list');
+        if(!list) return;
         list.innerHTML = '';
         const data = snap.val();
         if(!data) {
@@ -733,7 +743,6 @@ function toggleUserBan(uid, currentBanStatus) {
     db.ref(`users/${uid}/isBanned`).set(!currentBanStatus);
 }
 
-// Фильтр поиска по никнейму
 function filterAdminUsers() {
     renderAdminUsersList(allUsersDataLocal);
 }
@@ -764,22 +773,29 @@ auth.onAuthStateChanged((user) => {
                 document.getElementById('header-username').innerText = data.username || "Без никнейма";
                 document.getElementById('header-avatar').src = data.avatar || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
                 
-                // Проверяем роль на доступ к кнопке "Админ-центр"
+                const adminPanelBtn = document.getElementById('btn-admin-panel');
+                const editProfileBtn = document.getElementById('btn-profile-edit');
+                
                 if (ALL_ADMIN_ROLES.includes(data.role)) {
-                    document.getElementById('btn-admin-panel').classList.remove('hidden');
-                    document.getElementById('btn-profile-edit').classList.remove('hidden');
+                    if (adminPanelBtn) adminPanelBtn.classList.remove('hidden');
+                    if (editProfileBtn) editProfileBtn.classList.remove('hidden');
                 } else {
-                    document.getElementById('btn-admin-panel').classList.add('hidden');
-                    document.getElementById('btn-profile-edit').classList.remove('hidden');
+                    if (adminPanelBtn) adminPanelBtn.classList.add('hidden');
+                    if (editProfileBtn) editProfileBtn.classList.remove('hidden');
                 }
             }
         });
         updateOnlineStatus(true);
     } else {
-        document.getElementById('auth-buttons').classList.remove('hidden');
-        document.getElementById('user-menu').classList.add('hidden');
-        document.getElementById('btn-admin-panel').classList.add('hidden');
-        document.getElementById('btn-profile-edit').classList.add('hidden');
+        const authBtns = document.getElementById('auth-buttons');
+        const userMenu = document.getElementById('user-menu');
+        const adminPanelBtn = document.getElementById('btn-admin-panel');
+        const editProfileBtn = document.getElementById('btn-profile-edit');
+        
+        if (authBtns) authBtns.classList.remove('hidden');
+        if (userMenu) userMenu.classList.add('hidden');
+        if (adminPanelBtn) adminPanelBtn.classList.add('hidden');
+        if (editProfileBtn) editProfileBtn.classList.add('hidden');
     }
 });
 
@@ -787,5 +803,4 @@ window.addEventListener('beforeunload', () => {
     updateOnlineStatus(false);
 });
 
-// Первичный запуск функций
 loadForumData();
