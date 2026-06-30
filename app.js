@@ -28,23 +28,30 @@ const SERVERS_LIST_CONFIG = {
     "spb": "⚓ Санкт-Петербург"
 };
 
-const LEADER_FACTIONS_LIST = [
-    "Судебная Власть",
-    "Правительство",
-    "Федеральная служба безопасности",
-    "МВД",
-    "Министерство Обороны",
-    "Министерство Здравоохранения",
-    "Москва LIVE",
-    "Арзамас LIVE",
-    "Сочи LIVE",
-    "СМИ",
-    "ОПГ Тамбовское",
-    "ОПГ Кавказское",
-    "ОПГ Лыткаринское"
-];
+// Строгое разделение фракций по категориям (теперь они железно прописаны в коде!)
+const FACTIONS_STRUCTURE = {
+    "gos": [
+        "Судебная Власть",
+        "Правительство",
+        "Федеральная служба безопасности",
+        "МВД",
+        "Министерство Обороны",
+        "Министерство Здравоохранения",
+        "Москва LIVE",
+        "Арзамас LIVE",
+        "Сочи LIVE",
+        "СМИ"
+    ],
+    "crime": [
+        "ОПГ Тамбовское",
+        "ОПГ Кавказское",
+        "ОПГ Лыткаринское"
+    ]
+};
 
-// Списки ролей без Основателя, Разработчика и Куратора Сервера
+// Общий плоский список для выпадающих меню в админке
+const LEADER_FACTIONS_LIST = [...FACTIONS_STRUCTURE.gos, ...FACTIONS_STRUCTURE.crime];
+
 const FORUM_ROLES_GROUPS = {
     "Высшая Администрация": ["Руководство проекта", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора"],
     "Управляющая Администрация": ["Куратор Форума", "Гл. Куратор за Гос. организациями", "Гл. Куратор за ОПГ"],
@@ -52,19 +59,18 @@ const FORUM_ROLES_GROUPS = {
     "Обычные роли": ["Пользователь", "Проверенный пользователь", "Премиум", "Заблокирован"]
 };
 
-// Полный список ролей с доступом к Админ-центру и управлению фракциями
 const ALL_ADMIN_ROLES = ["Руководство проекта", "Спец. Администратор", "Главный Администратор", "Зам. Гл. Администратора", "Куратор Форума"];
 
 // Глобальное состояние
 let currentServerId = '';
 let currentCategoryId = '';
-let currentFactionId = '';
+let currentFactionId = ''; // Здесь хранится НАЗВАНИЕ фракции текстом (например: "МВД")
 let currentTopicId = '';
 let currentProfileUid = '';
 let allUsersDataLocal = {};
 
 // ==========================================
-// 3. НАВИГАЦИЯ И СТАТУС ОНЛАЙНА
+// 3. НАВИГАЦИЯ И ПРОВЕРКА ДОСТУПА (СТРОГАЯ)
 // ==========================================
 function backToHome() {
     currentServerId = '';
@@ -86,14 +92,15 @@ function updateOnlineStatus(isOnline) {
     db.ref(`users/${auth.currentUser.uid}/status`).set(isOnline ? "online" : "offline");
 }
 
+// НАИБОЛЕЕ ВАЖНАЯ ФУНКЦИЯ ПРОВЕРКИ ПРАВ РЕДАКТИРОВАНИЯ ТЕМЫ
 function hasEditAccess() {
     if (!auth.currentUser || !allUsersDataLocal[auth.currentUser.uid]) return false;
     const currentUser = allUsersDataLocal[auth.currentUser.uid];
     
-    // Администрация имеет доступ
+    // 1. Высшая администрация и куратор форума могут редактировать ВСЁ
     if (ALL_ADMIN_ROLES.includes(currentUser.role)) return true;
 
-    // Лидеры / замы имеют доступ к своей фракции
+    // 2. Лидеры и Заместители могут редактировать ТОЛЬКО свою фракцию и ТОЛЬКО на своем сервере
     if (currentUser.isLeader || currentUser.isSubLeader) {
         if (currentUser.leaderServer === currentServerId && currentUser.leaderFaction === currentFactionId) {
             return true;
@@ -151,10 +158,10 @@ function logout() {
 }
 
 // ==========================================
-// 5. РАБОТА С ФОРУМОМ (СЕРВЕРА, ТЕМЫ)
+// 5. РАБОТА С ФОРУМОМ (СЕРВЕРА, КАТЕГОРИИ, ТЕМЫ)
 // ==========================================
 function loadForumData() {
-    // Рендер серверов
+    // Рендер плиток серверов
     const serversList = document.getElementById('servers-list');
     if(serversList) {
         serversList.innerHTML = '';
@@ -187,7 +194,7 @@ function loadForumData() {
         }
     });
 
-    // Статистика
+    // Мониторинг базы данных пользователей (Статистика + обновление локальных прав)
     db.ref('users').on('value', snap => {
         const users = snap.val() || {};
         allUsersDataLocal = users;
@@ -232,6 +239,7 @@ function openServerCategories(serverId) {
     `;
 }
 
+// Исправленный рендер фракций — теперь берется из стабильного массива в коде!
 function openFactions(catId, catName) {
     currentCategoryId = catId;
     document.getElementById('current-category-title').innerText = catName;
@@ -239,61 +247,40 @@ function openFactions(catId, catName) {
 
     document.getElementById('btn-back-to-categories').onclick = () => openServerCategories(currentServerId);
 
-    // Проверка доступа для кнопки создания разделов фракций
+    // Кнопка создания подразделов фракций больше не нужна, так как порядок строго задан в коде проекта
     const createFactionBtn = document.getElementById('btn-show-create-faction');
-    if (createFactionBtn) {
-        if(auth.currentUser && allUsersDataLocal[auth.currentUser.uid]) {
-            const role = allUsersDataLocal[auth.currentUser.uid].role;
-            if(ALL_ADMIN_ROLES.includes(role)) {
-                createFactionBtn.classList.remove('hidden');
-            } else {
-                createFactionBtn.classList.add('hidden');
-            }
-        } else {
-            createFactionBtn.classList.add('hidden');
-        }
+    if (createFactionBtn) createFactionBtn.classList.add('hidden');
+
+    const facList = document.getElementById('factions-list');
+    if(!facList) return;
+    facList.innerHTML = '';
+
+    // Берем готовый список фракций ("gos" или "crime") из конфигурации в начале скрипта
+    const staticFactions = FACTIONS_STRUCTURE[catId] || [];
+
+    if(staticFactions.length === 0) {
+        facList.innerHTML = '<div class="empty-notify">Разделы фракций отсутствуют в конфигурации.</div>';
+        return;
     }
 
-    db.ref(`factions/${currentServerId}/${currentCategoryId}`).on('value', snap => {
-        const facList = document.getElementById('factions-list');
-        if(!facList) return;
-        facList.innerHTML = '';
-        const data = snap.val();
-        if(!data) {
-            facList.innerHTML = '<div class="empty-notify">Разделы фракций еще не созданы высшей администрацией.</div>';
-            return;
-        }
-        for(let fId in data) {
-            const card = document.createElement('div');
-            card.className = 'forum-section-card item-clickable';
-            card.innerHTML = `<div class="section-icon">📁</div><div class="section-title">${data[fId].name}</div>`;
-            card.onclick = () => openTopicsList(fId, data[fId].name);
-            facList.appendChild(card);
-        }
-    });
-}
-
-function toggleFactionForm() {
-    document.getElementById('create-faction-form').classList.toggle('hidden');
-}
-
-function createNewFaction() {
-    const name = document.getElementById('new-faction-name').value.trim();
-    if(!name) return alert("Введите имя раздела фракции!");
-    
-    db.ref(`factions/${currentServerId}/${currentCategoryId}`).push({ name: name }).then(() => {
-        document.getElementById('new-faction-name').value = '';
-        document.getElementById('create-faction-form').classList.add('hidden');
+    staticFactions.forEach(factionName => {
+        const card = document.createElement('div');
+        card.className = 'forum-section-card item-clickable';
+        card.innerHTML = `<div class="section-icon">📁</div><div class="section-title">${factionName}</div>`;
+        // При клике передаем имя фракции как её уникальный идентификатор пути
+        card.onclick = () => openTopicsList(factionName, factionName);
+        facList.appendChild(card);
     });
 }
 
 function openTopicsList(factionId, factionName) {
-    currentFactionId = factionId;
+    currentFactionId = factionId; // Сохраняем имя (например: "МВД")
     document.getElementById('current-faction-title').innerText = factionName;
     showScreen('screen-topics');
 
     document.getElementById('btn-back-to-factions').onclick = () => openFactions(currentCategoryId, document.getElementById('current-category-title').innerText);
 
+    // Проверяем: имеет ли право Лидер, Зам или Администратор создавать темы в этой фракции
     const createTopicBtn = document.getElementById('btn-show-create-topic');
     if (createTopicBtn) {
         if (hasEditAccess()) {
@@ -303,6 +290,7 @@ function openTopicsList(factionId, factionName) {
         }
     }
 
+    // Подгружаем темы фракции из Firebase, используя безопасный путь по строковому имени
     db.ref(`topics/${currentServerId}/${currentFactionId}`).on('value', snap => {
         const topicsList = document.getElementById('topics-list');
         if(!topicsList) return;
@@ -326,7 +314,6 @@ function toggleTopicForm() {
     document.getElementById('create-topic-form').classList.toggle('hidden');
 }
 
-// Позволяет создавать тему в текущей выбранной фракции
 function createNewTopic() {
     const title = document.getElementById('new-topic-name').value.trim();
     if(!title) return alert("Введите название темы!");
@@ -346,6 +333,7 @@ function openTopic(topicId, isInfoSection = false) {
 
     const path = isInfoSection ? `info_sections/${topicId}` : `topics/${currentServerId}/${currentFactionId}/${topicId}`;
 
+    // Строгая проверка доступа к кнопкам Изменения, Удаления и Подтем
     if(hasEditAccess()) {
         document.getElementById('topic-admin-editor-block').classList.remove('hidden');
         document.getElementById('btn-delete-current-topic').classList.remove('hidden');
@@ -521,7 +509,7 @@ function toggleProfileLike() {
 
 function sendProfileComment() {
     const text = document.getElementById('new-profile-comment').value.trim();
-    if(!text || !auth.currentUser) return alert("Введите text или войдите в аккаунт!");
+    if(!text || !auth.currentUser) return alert("Введите текст или войдите в аккаунт!");
 
     db.ref(`users/${auth.currentUser.uid}/username`).once('value', snap => {
         const senderName = snap.val() || "Аноним";
@@ -777,8 +765,8 @@ auth.onAuthStateChanged((user) => {
                 const editProfileBtn = document.getElementById('btn-profile-edit');
                 
                 if (ALL_ADMIN_ROLES.includes(data.role)) {
-                    if (adminPanelBtn) adminPanelBtn.classList.remove('hidden');
-                    if (editProfileBtn) editProfileBtn.classList.remove('hidden');
+                    if (adminPanelBtn) adminPanelBtn.classList.remove('remove', 'hidden');
+                    if (editProfileBtn) editProfileBtn.classList.remove('remove', 'hidden');
                 } else {
                     if (adminPanelBtn) adminPanelBtn.classList.add('hidden');
                     if (editProfileBtn) editProfileBtn.classList.remove('hidden');
