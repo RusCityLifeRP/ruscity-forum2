@@ -146,7 +146,7 @@ auth.onAuthStateChanged(user => {
 });
 
 // ==========================================
-// НАСТРОЙКИ ПРОФИЛЯ (ИСПРАВЛЕНО)
+// НАСТРОЙКИ ПРОФИЛЯ
 // ==========================================
 function openProfileSettings() {
     if (!currentUserData) return alert("Вы должны быть авторизованы!");
@@ -159,9 +159,6 @@ function openProfileSettings() {
     if (bioInput) bioInput.value = currentUserData.bio || "";
 }
 
-// ==========================================
-// 1. ИСПРАВЛЕННОЕ СОХРАНЕНИЕ ПРОФИЛЯ (БЕЗ CORS)
-// ==========================================
 async function saveProfileSettings() {
     const nicknameInput = document.getElementById('nickname') || document.getElementById('edit-username') || document.querySelector('input[placeholder*="Ник"]');
     const btnSave = document.getElementById('btnSave') || document.getElementById('btn-save-profile') || document.querySelector('button[onclick*="saveProfileSettings"]');
@@ -198,28 +195,24 @@ async function saveProfileSettings() {
         }
 
         const uid = auth.currentUser.uid;
-        // Берём старые URL из базы, если новые файлы не выбраны
         let avatarUrl = (currentUserData && currentUserData.avatar) || "https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png";
         let bannerUrl = (currentUserData && currentUserData.banner) || "";
         const bioText = document.getElementById('edit-bio') ? document.getElementById('edit-bio').value.trim() : "";
 
-        // Если юзер выбрал аватарку, превращаем её в текст
         if (avatarFile) {
             if (btnSave) btnSave.innerText = "⏳ Обработка аватарки...";
-            avatarUrl = await fileToDataURL(avatarFile); // Теперь это текстовая строка картинки
+            avatarUrl = await fileToDataURL(avatarFile);
         }
 
-        // Если юзер выбрал баннер, превращаем его в текст
         if (bannerFile) {
             if (btnSave) btnSave.innerText = "⏳ Обработка баннера...";
-            bannerUrl = await fileToDataURL(bannerFile); // Теперь это текстовая строка баннера
+            bannerUrl = await fileToDataURL(bannerFile);
         }
 
-        // Записываем всё НАПРЯМУЮ В БАЗУ ДАННЫХ (Здесь CORS никогда не сработает!)
         if (btnSave) btnSave.innerText = "⏳ Запись в БД...";
         await db.ref('users/' + uid).update({
             username: nickname, 
-            avatar: avatarUrl, // Текст картинки сохранится в базу данных
+            avatar: avatarUrl, 
             banner: bannerUrl,
             bio: bioText
         });
@@ -238,9 +231,8 @@ async function saveProfileSettings() {
     }
 }
 
-
 // ==========================================
-// СИСТЕМА РЕГИСТРАЦИИ И ВХОДА (ИСПРАВЛЕНО)
+// СИСТЕМА РЕГИСТРАЦИИ И ВХОДА
 // ==========================================
 async function registerUser() {
     const uEl = document.getElementById('reg-username') || document.getElementById('username');
@@ -630,29 +622,48 @@ function loadProfileComments() {
 }
 
 // ==========================================
-// АДМИН-ЦЕНТР
+// ИСПРАВЛЕННЫЙ АДМИН-ЦЕНТР
 // ==========================================
 let allUsersCache = {};
+
 function openAdminPanel() {
     const allowed = ["Руководство проекта", "Спец. Админ", "Главный admina", "Главный админ", "Заместитель главного admina", "Главный куратор"];
     if (!currentUserData || !allowed.includes(currentUserData.role)) return alert("Доступ запрещен!");
-    showScreen('screen-admin'); loadAdminUsers();
+    showScreen('screen-admin');
+    
+    // Загружаем список один раз при открытии, чтобы избежать бесконечных циклов и сброса поиска
+    db.ref('users').once('value').then(snapshot => {
+        allUsersCache = snapshot.val() || {};
+        renderAdminUsersList(allUsersCache);
+    });
 }
-function loadAdminUsers() { db.ref('users').on('value', snapshot => { allUsersCache = snapshot.val() || {}; renderAdminUsersList(allUsersCache); }); }
+
 function renderAdminUsersList(usersData) {
     const container = document.getElementById('admin-users-list'); if (!container) return; container.innerHTML = '';
+    
+    const searchVal = document.getElementById('admin-search-user') ? document.getElementById('admin-search-user').value.toLowerCase().trim() : "";
+
     for (let uid in usersData) {
-        const u = usersData[uid]; const card = document.createElement('div'); card.className = 'forum-section-card'; card.style.background = '#1e2530'; card.style.flexDirection = 'column'; card.style.alignItems = 'stretch'; card.style.gap = '15px';
+        const u = usersData[uid];
+        
+        // Фильтрация "на лету"
+        if (searchVal && u.username && !u.username.toLowerCase().includes(searchVal)) continue;
+
+        const card = document.createElement('div'); card.className = 'forum-section-card'; card.style.background = '#1e2530'; card.style.flexDirection = 'column'; card.style.alignItems = 'stretch'; card.style.gap = '15px';
+        
         let roleOptionsHtml = '';
         for (let groupName in FORUM_ROLES_GROUPS) {
             roleOptionsHtml += `<optgroup label="📂 ${groupName}">`;
             FORUM_ROLES_GROUPS[groupName].forEach(r => { roleOptionsHtml += `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`; });
             roleOptionsHtml += `</optgroup>`;
         }
+        
         let factionOptionsHtml = `<option value="">-- Без фракции --</option>`;
         LEADER_FACTIONS_LIST.forEach(f => { factionOptionsHtml += `<option value="${f}" ${u.leaderFaction === f ? 'selected' : ''}>${f}</option>`; });
+        
         let serverOptionsHtml = `<option value="">-- Без сервера --</option>`;
         for (let sId in SERVERS_LIST_CONFIG) { serverOptionsHtml += `<option value="${sId}" ${u.leaderServer === sId ? 'selected' : ''}>${SERVERS_LIST_CONFIG[sId]}</option>`; }
+        
         card.innerHTML = `
             <div style="display:flex; align-items:center; gap:15px; justify-content:space-between; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:12px;">
@@ -680,13 +691,42 @@ function renderAdminUsersList(usersData) {
         container.appendChild(card);
     }
 }
+
 function filterAdminUsers() {
-    const val = document.getElementById('admin-search-user').value.toLowerCase().trim(); if (!val) return renderAdminUsersList(allUsersCache);
-    const filtered = {}; for (let uid in allUsersCache) { if (allUsersCache[uid].username && allUsersCache[uid].username.toLowerCase().includes(val)) filtered[uid] = allUsersCache[uid]; }
-    renderAdminUsersList(filtered);
+    renderAdminUsersList(allUsersCache);
 }
-function updateUserRole(uid, newRole) { db.ref(`users/${uid}/role`).set(newRole); }
-function toggleUserBan(uid, currentBanStatus) { db.ref(`users/${uid}/isBanned`).set(!currentBanStatus); }
-function updateLeaderStatus(uid, field, value) { db.ref(`users/${uid}/${field}`).set(value); }
-function updateUserFaction(uid, factionName) { db.ref(`users/${uid}/leaderFaction`).set(factionName); }
-function updateUserServer(uid, serverId) { db.ref(`users/${uid}/leaderServer`).set(serverId); }
+
+// Функции обновления данных в Firebase с точечной перерисовкой HTML интерфейса
+function updateUserRole(uid, newRole) { 
+    db.ref(`users/${uid}/role`).set(newRole).then(() => {
+        if(allUsersCache[uid]) allUsersCache[uid].role = newRole;
+        renderAdminUsersList(allUsersCache);
+    }); 
+}
+
+function toggleUserBan(uid, currentBanStatus) { 
+    const nextBan = !currentBanStatus;
+    db.ref(`users/${uid}/isBanned`).set(nextBan).then(() => {
+        if(allUsersCache[uid]) allUsersCache[uid].isBanned = nextBan;
+        renderAdminUsersList(allUsersCache);
+    }); 
+}
+
+function updateLeaderStatus(uid, field, value) { 
+    db.ref(`users/${uid}/${field}`).set(value).then(() => {
+        if(allUsersCache[uid]) allUsersCache[uid][field] = value;
+        // Не перерисовываем сразу весь список, чтобы не сбивать состояние чекбоксов во время клика
+    }); 
+}
+
+function updateUserFaction(uid, factionName) { 
+    db.ref(`users/${uid}/leaderFaction`).set(factionName).then(() => {
+        if(allUsersCache[uid]) allUsersCache[uid].leaderFaction = factionName;
+    }); 
+}
+
+function updateUserServer(uid, serverId) { 
+    db.ref(`users/${uid}/leaderServer`).set(serverId).then(() => {
+        if(allUsersCache[uid]) allUsersCache[uid].leaderServer = serverId;
+    }); 
+}
