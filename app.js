@@ -19,7 +19,7 @@ const db = firebase.database();
 const auth = firebase.auth();
 const storage = firebase.storage();
 
-// ГРУППИРОВКА РОЛЕЙ
+// ГРУППИРОВКА РОЛЕЙ НА ФОРУМЕ
 const FORUM_ROLES_GROUPS = {
     "Пользователи": ["Пользователь"],
     "Высшая Администрация": ["Руководство проекта", "Спец. Админ", "Главный админ", "Главный admina", "Заместитель главного admina", "Главный куратор", "Помощник главного куратора"],
@@ -31,6 +31,7 @@ const FORUM_ROLES_GROUPS = {
     "Министерство Соц. Политики": ["Министр социальной политики и труда", "Заместитель министра социальной политики и труда"]
 };
 
+// СПИСОК ОРГАНИЗАЦИЙ ДЛЯ НАЗНАЧЕНИЯ ЛИДЕРОВ И ЗАМОВ
 const LEADER_FACTIONS_LIST = [
     "Судебная Власть", "Прокуратура", "Следственный комитет", "Правительство",
     "Федеральная служба безопасности", "Армия", "МВД", "ГИБДД",
@@ -39,6 +40,7 @@ const LEADER_FACTIONS_LIST = [
     "Центр организации дорожного движение", "Москва LIVE"
 ];
 
+// КОНФИГУРАЦИЯ ИГРОВЫХ СЕРВЕРОВ
 const SERVERS_LIST_CONFIG = {
     "server1": "🏰 Москва",
     "server2": "🌴 Сочи",
@@ -63,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// СУПЕР-ПРАВА И ДОСТУПЫ
+// СУПЕР-ПРАВА И ДОСТУПЫ К МОДЕРАЦИИ ВЕТОК
 // ==========================================
 function hasEditAccess() {
     if (!currentUserData) return false;
@@ -97,7 +99,7 @@ function hasEditAccess() {
 }
 
 // ==========================================
-// СЛУШАТЕЛЬ АВТОРИЗАЦИИ
+// СЛУШАТЕЛЬ АВТОРИЗАЦИИ И СОСТОЯНИЯ ЮЗЕРА
 // ==========================================
 auth.onAuthStateChanged(user => {
     const btnAdmin = document.getElementById('btn-admin-panel');
@@ -146,7 +148,7 @@ auth.onAuthStateChanged(user => {
 });
 
 // ==========================================
-// НАСТРОЙКИ ПРОФИЛЯ
+// НАСТРОЙКИ ПРОФИЛЯ ЮЗЕРА (БЕЗ CORS)
 // ==========================================
 function openProfileSettings() {
     if (!currentUserData) return alert("Вы должны быть авторизованы!");
@@ -293,7 +295,7 @@ function logout() {
 }
 
 // ==========================================
-// СИСТЕМА ГЛОБАЛЬНОЙ СТАТИСТИКИ
+// СИСТЕМА ГЛОБАЛЬНОЙ СТАТИСТИКИ ФОРУМА
 // ==========================================
 db.ref('users').on('value', snapshot => {
     const users = snapshot.val();
@@ -332,7 +334,7 @@ db.ref('users').on('value', snapshot => {
 });
 
 // ==========================================
-// ПРОСМОТР ПУБЛИЧНЫХ ПРОФИЛЕЙ
+// ПРОСМОТР ПУБЛИЧНЫХ ПРОФИЛЕЙ И СТЕНА ТЕКСТА
 // ==========================================
 let viewTargetUid = null;
 function openPublicProfile(uid) {
@@ -576,7 +578,7 @@ function saveTopicContent() {
 }
 
 function toggleProfileLike() {
-    if (!auth.currentUser) return alert("Войдите на forum!"); if (auth.currentUser.uid === viewTargetUid) return alert("Нельзя лайкать себя!");
+    if (!auth.currentUser) return alert("Войдите на форум!"); if (auth.currentUser.uid === viewTargetUid) return alert("Нельзя лайкать себя!");
     const likeRef = db.ref(`profile_likes/${viewTargetUid}/${auth.currentUser.uid}`);
     const userLikesRef = db.ref(`users/${viewTargetUid}/likes`);
     likeRef.once('value', snapshot => {
@@ -622,16 +624,16 @@ function loadProfileComments() {
 }
 
 // ==========================================
-// ИСПРАВЛЕННЫЙ АДМИН-ЦЕНТР
+// ОБНОВЛЕННЫЙ АДМИН-ЦЕНТР (ПОШАГОВАЯ ВЫДАЧА ПРАВ)
 // ==========================================
 let allUsersCache = {};
+let activeAssignUid = null;
 
 function openAdminPanel() {
     const allowed = ["Руководство проекта", "Спец. Админ", "Главный admina", "Главный админ", "Заместитель главного admina", "Главный куратор"];
     if (!currentUserData || !allowed.includes(currentUserData.role)) return alert("Доступ запрещен!");
     showScreen('screen-admin');
     
-    // Загружаем список один раз при открытии, чтобы избежать бесконечных циклов и сброса поиска
     db.ref('users').once('value').then(snapshot => {
         allUsersCache = snapshot.val() || {};
         renderAdminUsersList(allUsersCache);
@@ -640,13 +642,10 @@ function openAdminPanel() {
 
 function renderAdminUsersList(usersData) {
     const container = document.getElementById('admin-users-list'); if (!container) return; container.innerHTML = '';
-    
     const searchVal = document.getElementById('admin-search-user') ? document.getElementById('admin-search-user').value.toLowerCase().trim() : "";
 
     for (let uid in usersData) {
         const u = usersData[uid];
-        
-        // Фильтрация "на лету"
         if (searchVal && u.username && !u.username.toLowerCase().includes(searchVal)) continue;
 
         const card = document.createElement('div'); card.className = 'forum-section-card'; card.style.background = '#1e2530'; card.style.flexDirection = 'column'; card.style.alignItems = 'stretch'; card.style.gap = '15px';
@@ -657,12 +656,10 @@ function renderAdminUsersList(usersData) {
             FORUM_ROLES_GROUPS[groupName].forEach(r => { roleOptionsHtml += `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`; });
             roleOptionsHtml += `</optgroup>`;
         }
-        
-        let factionOptionsHtml = `<option value="">-- Без фракции --</option>`;
-        LEADER_FACTIONS_LIST.forEach(f => { factionOptionsHtml += `<option value="${f}" ${u.leaderFaction === f ? 'selected' : ''}>${f}</option>`; });
-        
-        let serverOptionsHtml = `<option value="">-- Без сервера --</option>`;
-        for (let sId in SERVERS_LIST_CONFIG) { serverOptionsHtml += `<option value="${sId}" ${u.leaderServer === sId ? 'selected' : ''}>${SERVERS_LIST_CONFIG[sId]}</option>`; }
+
+        let currentStatusText = `<span style="color: #8a99ad;">Обычный пользователь</span>`;
+        if (u.isLeader) currentStatusText = `<span style="color: #fbbf24; font-weight: bold;">👑 Лидер (${SERVERS_LIST_CONFIG[u.leaderServer] || u.leaderServer} | ${u.leaderFaction})</span>`;
+        if (u.isSubLeader) currentStatusText = `<span style="color: #60a5fa; font-weight: bold;">📋 Зам. Лидера (${SERVERS_LIST_CONFIG[u.leaderServer] || u.leaderServer} | ${u.leaderFaction})</span>`;
         
         card.innerHTML = `
             <div style="display:flex; align-items:center; gap:15px; justify-content:space-between; flex-wrap:wrap;">
@@ -670,24 +667,54 @@ function renderAdminUsersList(usersData) {
                     <img src="${u.avatar || 'https://purple-hub.ru/styles/aurora/xenforo/avatars/avatar_m.png'}" style="width:45px; height:45px; border-radius:50%; object-fit:cover;">
                     <div>
                         <div style="font-weight:600; color:#fff; font-size:15px; cursor:pointer;" onclick="openPublicProfile('${uid}')">${u.username} ${u.isBanned ? '<span style="color:#ef4444;">[БАН]</span>' : ''}</div>
-                        <div style="font-size:12px; color:#8a99ad;">Роль: <b style="color:#60a5fa;">${u.role || 'Пользователь'}</b></div>
+                        <div style="font-size:12px; color:#8a99ad;">Ранг на форуме: <b style="color:#a855f7;">${u.role || 'Пользователь'}</b></div>
+                        <div style="font-size:12px; margin-top: 3px;">Статус прав: ${currentStatusText}</div>
                     </div>
                 </div>
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:8px; flex-wrap: wrap;">
                     <select onchange="updateUserRole('${uid}', this.value)" style="background:#12171f; color:#fff; border:1px solid #475569; padding:6px; border-radius:4px; font-size:12px;">${roleOptionsHtml}</select>
-                    <button class="btn-primary" onclick="toggleUserBan('${uid}', ${u.isBanned || false})" style="background:${u.isBanned ? '#10b981' : '#b91c1c'}; font-size:12px; padding:6px 12px;">${u.isBanned ? 'Разбанить' : 'Забанить'}</button>
+                    <button class="btn-primary" onclick="startAssignLeader('${uid}', '${u.username}')" style="background:#2563eb; font-size:12px; padding:6px 12px;">👑 Назначить Руководителем</button>
+                    ${(u.isLeader || u.isSubLeader) ? `<button class="btn-primary" onclick="removeLeaderRights('${uid}')" style="background:#b91c1c; font-size:12px; padding:6px 12px;">Снять права</button>` : ''}
+                    <button class="btn-primary" onclick="toggleUserBan('${uid}', ${u.isBanned || false})" style="background:${u.isBanned ? '#10b981' : '#7f1d1d'}; font-size:12px; padding:6px 12px;">${u.isBanned ? 'Разбанить' : 'Забанить'}</button>
                 </div>
             </div>
-            <div style="display:flex; flex-direction:column; gap:10px; background:rgba(0,0,0,0.2); padding:12px; border-radius:6px;">
-                <div style="display:flex; gap:20px; flex-wrap:wrap;">
-                    <label style="color:#cbd5e1; font-size:13px; cursor:pointer;"><input type="checkbox" ${u.isLeader ? 'checked' : ''} onchange="updateLeaderStatus('${uid}', 'isLeader', this.checked)"> 👑 Лидер</label>
-                    <label style="color:#cbd5e1; font-size:13px; cursor:pointer;"><input type="checkbox" ${u.isSubLeader ? 'checked' : ''} onchange="updateLeaderStatus('${uid}', 'isSubLeader', this.checked)"> 📋 Заместитель</label>
+            
+            <!-- Пошаговое интерактивное меню -->
+            <div id="assign-block-${uid}" class="hidden" style="background: #111827; padding: 15px; border-radius: 6px; border: 1px solid #3b82f6; margin-top: 10px;">
+                <h4 style="color: #3b82f6; margin-bottom: 10px; font-size: 14px;">Настройка прав управления для ${u.username}:</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    
+                    <div>
+                        <label style="color: #cbd5e1; font-size: 12px; display:block; margin-bottom:4px;">1. Выберите сервер:</label>
+                        <select id="assign-server-${uid}" style="background:#1f2937; color:#fff; border:1px solid #4b5563; padding:6px; border-radius:4px; width:100%;">
+                            <option value="">-- Выберите сервер из списка --</option>
+                            ${Object.keys(SERVERS_LIST_CONFIG).map(sId => `<option value="${sId}">${SERVERS_LIST_CONFIG[sId]}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="color: #cbd5e1; font-size: 12px; display:block; margin-bottom:4px;">2. Выберите должность:</label>
+                        <select id="assign-type-${uid}" style="background:#1f2937; color:#fff; border:1px solid #4b5563; padding:6px; border-radius:4px; width:100%;">
+                            <option value="leader">👑 Лидер организации</option>
+                            <option value="subleader">📋 Заместитель лидера</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="color: #cbd5e1; font-size: 12px; display:block; margin-bottom:4px;">3. Выберите государственную / криминальную фракцию:</label>
+                        <select id="assign-faction-${uid}" style="background:#1f2937; color:#fff; border:1px solid #4b5563; padding:6px; border-radius:4px; width:100%;">
+                            <option value="">-- Выберите фракцию из списка --</option>
+                            ${LEADER_FACTIONS_LIST.map(fac => `<option value="${fac}">${fac}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div style="display:flex; gap: 10px; margin-top: 5px;">
+                        <button class="btn-primary" onclick="confirmLeaderAssignment('${uid}')" style="background:#10b981; padding: 8px 16px; width: 100%; font-weight:bold;">✅ Подтвердить назначение</button>
+                        <button class="btn-primary" onclick="cancelLeaderAssignment('${uid}')" style="background:#4b5563; padding: 8px 16px;">Отмена</button>
+                    </div>
                 </div>
-                <div style="display:flex; flex-direction:column; gap:8px;">
-                    <select onchange="updateUserServer('${uid}', this.value)" style="background:#12171f; color:#fff; border:1px solid #334155; padding:5px; border-radius:4px; font-size:13px;">${serverOptionsHtml}</select>
-                    <select onchange="updateUserFaction('${uid}', this.value)" style="background:#12171f; color:#fff; border:1px solid #334155; padding:5px; border-radius:4px; font-size:13px;">${factionOptionsHtml}</select>
-                </div>
-            </div>`;
+            </div>
+        `;
         container.appendChild(card);
     }
 }
@@ -696,7 +723,82 @@ function filterAdminUsers() {
     renderAdminUsersList(allUsersCache);
 }
 
-// Функции обновления данных в Firebase с точечной перерисовкой HTML интерфейса
+function startAssignLeader(uid, username) {
+    if (activeAssignUid && document.getElementById(`assign-block-${activeAssignUid}`)) {
+        document.getElementById(`assign-block-${activeAssignUid}`).classList.add('hidden');
+    }
+    activeAssignUid = uid;
+    const block = document.getElementById(`assign-block-${uid}`);
+    if (block) block.classList.remove('hidden');
+}
+
+function cancelLeaderAssignment(uid) {
+    const block = document.getElementById(`assign-block-${uid}`);
+    if (block) block.classList.add('hidden');
+    activeAssignUid = null;
+}
+
+function confirmLeaderAssignment(uid) {
+    const serverSelect = document.getElementById(`assign-server-${uid}`);
+    const typeSelect = document.getElementById(`assign-type-${uid}`);
+    const factionSelect = document.getElementById(`assign-faction-${uid}`);
+
+    if (!serverSelect || !typeSelect || !factionSelect) return alert("Ошибка интерфейса скрипта!");
+
+    const selectedServer = serverSelect.value;
+    const selectedType = typeSelect.value;
+    const selectedFaction = factionSelect.value;
+
+    if (!selectedServer) return alert("Пожалуйста, выберите сервер на Шаге 1!");
+    if (!selectedFaction) return alert("Пожалуйста, выберите фракцию на Шаге 3!");
+
+    const isLeader = selectedType === "leader";
+    const isSubLeader = selectedType === "subleader";
+
+    const updateData = {
+        isLeader: isLeader,
+        isSubLeader: isSubLeader,
+        leaderServer: selectedServer,
+        leaderFaction: selectedFaction
+    };
+
+    db.ref(`users/${uid}`).update(updateData).then(() => {
+        alert("Успешно! Права управления и модерации фракции выданы.");
+        if (allUsersCache[uid]) {
+            allUsersCache[uid].isLeader = isLeader;
+            allUsersCache[uid].isSubLeader = isSubLeader;
+            allUsersCache[uid].leaderServer = selectedServer;
+            allUsersCache[uid].leaderFaction = selectedFaction;
+        }
+        activeAssignUid = null;
+        renderAdminUsersList(allUsersCache);
+    }).catch(err => {
+        alert("Ошибка Firebase при сохранении: " + err.message);
+    });
+}
+
+function removeLeaderRights(uid) {
+    if (!confirm("Вы уверены, что хотите полностью забрать права лидера/заместителя у этого игрока?")) return;
+
+    const resetData = {
+        isLeader: false,
+        isSubLeader: false,
+        leaderServer: "",
+        leaderFaction: ""
+    };
+
+    db.ref(`users/${uid}`).update(resetData).then(() => {
+        alert("Права успешно аннулированы!");
+        if (allUsersCache[uid]) {
+            allUsersCache[uid].isLeader = false;
+            allUsersCache[uid].isSubLeader = false;
+            allUsersCache[uid].leaderServer = "";
+            allUsersCache[uid].leaderFaction = "";
+        }
+        renderAdminUsersList(allUsersCache);
+    });
+}
+
 function updateUserRole(uid, newRole) { 
     db.ref(`users/${uid}/role`).set(newRole).then(() => {
         if(allUsersCache[uid]) allUsersCache[uid].role = newRole;
@@ -709,24 +811,5 @@ function toggleUserBan(uid, currentBanStatus) {
     db.ref(`users/${uid}/isBanned`).set(nextBan).then(() => {
         if(allUsersCache[uid]) allUsersCache[uid].isBanned = nextBan;
         renderAdminUsersList(allUsersCache);
-    }); 
-}
-
-function updateLeaderStatus(uid, field, value) { 
-    db.ref(`users/${uid}/${field}`).set(value).then(() => {
-        if(allUsersCache[uid]) allUsersCache[uid][field] = value;
-        // Не перерисовываем сразу весь список, чтобы не сбивать состояние чекбоксов во время клика
-    }); 
-}
-
-function updateUserFaction(uid, factionName) { 
-    db.ref(`users/${uid}/leaderFaction`).set(factionName).then(() => {
-        if(allUsersCache[uid]) allUsersCache[uid].leaderFaction = factionName;
-    }); 
-}
-
-function updateUserServer(uid, serverId) { 
-    db.ref(`users/${uid}/leaderServer`).set(serverId).then(() => {
-        if(allUsersCache[uid]) allUsersCache[uid].leaderServer = serverId;
     }); 
 }
